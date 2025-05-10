@@ -278,7 +278,7 @@ export function DrawingCanvas({
 		updateDrawing,
 		submitGuess,
 	} = gameMode
-		? useGameState(gameId, playerId, playerName, clearCanvas)
+		? useGameState(playerId, playerName, gameId, clearCanvas)
 		: {
 				isConnected: false,
 				gameState: DEFAULT_GAME_STATE,

@@ -1,33 +1,216 @@
-import { type FC, useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-import type { RoomData } from '../types';
 import ConnectionStatus from './ConnectionStatus';
 import ErrorBanner from './ErrorBanner';
 import SettingsModal from './SettingsModal';
 import ShareRoomModal from './ShareRoomModal';
 import { GameScreen } from './GameScreen';
 
-interface RoomScreenProps {
-  roomData: RoomData;
-  name: string;
-  isModeratorView: boolean;
-  onUpdateSettings: (settings: RoomData['settings']) => void;
-  error: string;
-  onClearError: () => void;
-  isConnected: boolean;
-  onLeaveRoom: () => void;
-}
-
-const RoomScreen: FC<RoomScreenProps> = ({
-  roomData,
-  name,
-  isModeratorView,
-  onUpdateSettings,
-  error,
-  onClearError,
+import {
+  createRoom,
+  joinRoom,
+  connectToRoom,
+  disconnectFromRoom,
+  updateSettings,
+  addEventListener,
+  removeEventListener,
   isConnected,
-  onLeaveRoom,
-}) => {
+  type WebSocketMessageType
+} from '../lib/api-service';
+import type { RoomData, WebSocketErrorData, RoomSettings } from '../types';
+
+export function RoomScreen() {
+  const [name, setName] = useState<string>('');
+  const [roomKey, setRoomKey] = useState<string>('');
+  const [screen, setScreen] = useState('welcome');
+  const [roomData, setRoomData] = useState<RoomData>({
+    key: '',
+    users: [],
+    moderator: '',
+    connectedUsers: {},
+    settings: {
+    }
+  });
+  const [isModeratorView, setIsModeratorView] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const didLoadName = useRef(false);
+  const didCheckUrlParams = useRef(false);
+  const didAttemptRestore = useRef(false);
+
+  // Join room from URL parameters
+  useEffect(() => {
+    if (didCheckUrlParams.current) return;
+    
+    didCheckUrlParams.current = true;
+    
+    try {
+      const url = new URL(window.location.href);
+      const joinParam = url.searchParams.get('join');
+      
+      // Check if URL contains ?join=roomKey
+      if (joinParam && joinParam.length > 0) {
+        setRoomKey(joinParam.toUpperCase());
+        setScreen('join');
+        
+        window.history.replaceState({}, document.title, '/');
+      }
+    } catch (err) {
+      console.error('Failed to parse URL parameters', err);
+    }
+  }, []);
+
+  // Auto-reconnect to last room on refresh
+  useEffect(() => {
+    if (didAttemptRestore.current) return;
+    if (screen !== 'welcome') return;
+    if (!name) return;
+    didAttemptRestore.current = true;
+    const savedRoomKey = localStorage.getItem('anyonecandraw_roomKey');
+    if (savedRoomKey) {
+      setIsLoading(true);
+      joinRoom(name, savedRoomKey)
+        .then((joinedRoom) => {
+          setRoomData(joinedRoom);
+          setIsModeratorView(joinedRoom.moderator === name);
+          setScreen('room');
+        })
+        .catch((err) => {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to reconnect to room';
+          setError(errorMessage);
+          localStorage.removeItem('anyonecandraw_roomKey');
+        })
+        .finally(() => setIsLoading(false));
+    }
+  }, [name, screen]);
+
+  const handleRoomUpdate = useCallback((updatedRoomData: RoomData) => {
+    setRoomData(updatedRoomData);
+
+    setIsModeratorView(updatedRoomData.moderator === name);
+
+    setError('');
+  }, [name]);
+
+  // Connect to WebSocket when entering a room
+  useEffect(() => {
+    if (screen === 'room' && name && roomData.key) {
+      connectToRoom(roomData.key, name, handleRoomUpdate);
+
+      const errorHandler = (data: WebSocketErrorData) => {
+        setError(data.error || 'Connection error');
+      };
+
+      const eventTypes: WebSocketMessageType[] = ['disconnected', 'error'];
+      
+      for (const type of eventTypes) {
+        addEventListener(type, errorHandler);
+      }
+
+      return () => {
+        disconnectFromRoom();
+        for (const type of eventTypes) {
+          removeEventListener(type, errorHandler);
+        }
+      };
+    }
+  }, [screen, name, roomData.key, handleRoomUpdate]);
+
+  // Persist user name in localStorage (Combined Load & Save)
+  useEffect(() => {
+    if (!didLoadName.current) {
+      const savedName = localStorage.getItem('anyonecandraw_username');
+      if (savedName) {
+        setName(savedName);
+      }
+      didLoadName.current = true;
+      return;
+    }
+
+    if (name === '' && !localStorage.getItem('anyonecandraw_username')) {
+      return;
+    }
+
+    const saveTimeout = setTimeout(() => {
+      localStorage.setItem('anyonecandraw_username', name);
+    }, 500);
+
+    return () => clearTimeout(saveTimeout);
+  }, [name]);
+
+  const handleCreateRoom = async () => {
+    if (!name) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const newRoom = await createRoom(name);
+
+      setRoomData(newRoom);
+      localStorage.setItem('anyonecandraw_roomKey', newRoom.key);
+      setIsModeratorView(true);
+      setScreen('room');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to create room';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJoinRoom = async () => {
+    if (!name || !roomKey) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const joinedRoom = await joinRoom(name, roomKey);
+
+      setRoomData(joinedRoom);
+      localStorage.setItem('anyonecandraw_roomKey', joinedRoom.key);
+      setIsModeratorView(joinedRoom.moderator === name);
+      setScreen('room');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to join room';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateSettings = (settings: RoomSettings) => {
+    if (!isModeratorView) return;
+
+    try {
+      updateSettings(settings);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update settings';
+      setError(errorMessage);
+    }
+  };
+
+  const handleLeaveRoom = () => {
+    disconnectFromRoom();
+    localStorage.removeItem('anyonecandraw_roomKey');
+    setRoomData({
+      key: '',
+      users: [],
+      moderator: '',
+      connectedUsers: {},
+      settings: {
+      }
+    });
+    setScreen('welcome');
+  };
+
+  const onClearError = () => setError('');
+
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
@@ -61,7 +244,7 @@ const RoomScreen: FC<RoomScreenProps> = ({
             </div>
             <button
               type="button"
-              onClick={onLeaveRoom}
+              onClick={handleLeaveRoom}
               className="text-xs md:text-sm px-2 md:px-3 py-1 bg-teal-700 hover:bg-teal-800 rounded-md transition-colors"
               title="Leave Room"
             >
@@ -70,10 +253,12 @@ const RoomScreen: FC<RoomScreenProps> = ({
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-4">
-            <ConnectionStatus isConnected={isConnected} />
-            <div className="hidden sm:block text-xs md:text-sm px-2 md:px-3 py-1 bg-teal-800 rounded-md">
-              {isModeratorView ? 'Moderator' : 'Team Member'}
-            </div>
+            <ConnectionStatus isConnected={isConnected()} />
+            {isConnected() && ( 
+              <div className="hidden sm:block text-xs md:text-sm px-2 md:px-3 py-1 bg-teal-800 rounded-md">
+                {isModeratorView ? 'Moderator' : 'Player'}
+              </div>
+            )}
             {isModeratorView && (
               <button
                 type="button"
@@ -92,31 +277,7 @@ const RoomScreen: FC<RoomScreenProps> = ({
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-[30%_70%] flex-1 h-full">
-        <div className="p-4 bg-gray-100 border-b md:border-b-0 md:border-r overflow-y-auto">
-          <h2 className="mb-4 text-lg font-medium">Participants ({roomData.users.length})</h2>
-          <ul className="space-y-2">
-            {roomData.users.map((user: string) => (
-              <li
-                key={user}
-                className="flex items-center justify-between p-2 bg-white rounded-md shadow-sm transition-all hover:shadow-md"
-              >
-                <div className="flex items-center space-x-2">
-                  <span className={`${user === name ? 'font-medium' : ''}`}>
-                    {user}
-                    {user === roomData.moderator && (
-                      <span className="ml-1 text-xs text-teal-600">(Mod)</span>
-                    )}
-                    {user === name && (
-                      <span className="ml-1 text-xs text-gray-500">(You)</span>
-                    )}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
+      <div className="flex-1 h-full">
         <div className="flex flex-col p-4 md:p-6 overflow-y-auto space-y-8">
 					<div>
 						<GameScreen
@@ -131,7 +292,7 @@ const RoomScreen: FC<RoomScreenProps> = ({
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         settings={roomData.settings}
-        onSaveSettings={onUpdateSettings}
+        onSaveSettings={handleUpdateSettings}
       />
 
       <ShareRoomModal

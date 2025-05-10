@@ -5,6 +5,7 @@ import ConnectionStatus from './ConnectionStatus';
 import ErrorBanner from './ErrorBanner';
 import SettingsModal from './SettingsModal';
 import ShareRoomModal from './ShareRoomModal';
+import { GameScreen } from './GameScreen';
 
 interface RoomScreenProps {
   roomData: RoomData;
@@ -117,11 +118,14 @@ const RoomScreen: FC<RoomScreenProps> = ({
         </div>
 
         <div className="flex flex-col p-4 md:p-6 overflow-y-auto space-y-8">
-          <div>
-            <h2 className="mb-4 text-xl font-semibold">WIP</h2>
-          </div>
-        </div>
-      </div>
+					<div>
+						<GameScreen
+							user={roomData.users[0]}
+							onGenerateDrawing={() => Promise.resolve({})}
+						/>
+					</div>
+				</div>
+			</div>
 
       <SettingsModal
         isOpen={isSettingsModalOpen}

@@ -33,7 +33,7 @@ interface WebSocketMessage {
 }
 
 /**
- * Create a new planning poker room
+ * Create a new room
  * @param {string} name - The name of the user creating the room
  * @returns {Promise<RoomData>} - The room data
  */
@@ -61,7 +61,7 @@ export async function createRoom(name: string): Promise<RoomData> {
 }
 
 /**
- * Join an existing planning poker room
+ * Join an existing room
  * @param {string} name - The name of the user joining the room
  * @param {string} roomKey - The unique key for the room
  * @returns {Promise<RoomData>} - The room data

@@ -1,5 +1,4 @@
 export interface RoomSettings {
-  diagramCode?: string;
 }
 
 export interface RoomData {

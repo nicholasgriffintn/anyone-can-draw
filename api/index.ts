@@ -159,6 +159,119 @@ async function handleApiRequest(url: URL, request: CfRequest, env: Env): Promise
     );
   }
 
+  // Game-specific endpoints
+  if (path === 'rooms/start-game' && request.method === 'POST') {
+    const body = await request.json<{ name?: string; roomKey?: string }>();
+    const name = body?.name;
+    const roomKey = body?.roomKey;
+
+    if (!name || !roomKey) {
+      return new Response(
+        JSON.stringify({ error: 'Name and room key are required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      ) as unknown as CfResponse;
+    }
+
+    const roomId = getRoomId(roomKey);
+    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
+
+    return roomObject.fetch(
+      new Request('https://dummy/start-game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      }) as unknown as CfRequest
+    );
+  }
+
+  if (path === 'rooms/submit-guess' && request.method === 'POST') {
+    const body = await request.json<{ name?: string; roomKey?: string; guess?: string }>();
+    const name = body?.name;
+    const roomKey = body?.roomKey;
+    const guess = body?.guess;
+
+    if (!name || !roomKey || !guess) {
+      return new Response(
+        JSON.stringify({ error: 'Name, room key, and guess are required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      ) as unknown as CfResponse;
+    }
+
+    const roomId = getRoomId(roomKey);
+    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
+
+    return roomObject.fetch(
+      new Request('https://dummy/submit-guess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, guess }),
+      }) as unknown as CfRequest
+    );
+  }
+
+  if (path === 'rooms/update-drawing' && request.method === 'POST') {
+    const body = await request.json<{ name?: string; roomKey?: string; drawingData?: string }>();
+    const name = body?.name;
+    const roomKey = body?.roomKey;
+    const drawingData = body?.drawingData;
+
+    if (!name || !roomKey || !drawingData) {
+      return new Response(
+        JSON.stringify({ error: 'Name, room key, and drawing data are required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      ) as unknown as CfResponse;
+    }
+
+    const roomId = getRoomId(roomKey);
+    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
+
+    return roomObject.fetch(
+      new Request('https://dummy/update-drawing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, drawingData }),
+      }) as unknown as CfRequest
+    );
+  }
+
+  if (path === 'rooms/game-state' && request.method === 'GET') {
+    const roomKey = url.searchParams.get('roomKey');
+    const name = url.searchParams.get('name');
+
+    if (!roomKey) {
+      return new Response(
+        JSON.stringify({ error: 'Room key is required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      ) as unknown as CfResponse;
+    }
+
+    const roomId = getRoomId(roomKey);
+    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
+
+    const newUrl = new URL('https://dummy/game-state');
+    if (name) {
+      newUrl.searchParams.set('name', name);
+    }
+
+    return roomObject.fetch(
+      new Request(newUrl, {
+        method: 'GET',
+      }) as unknown as CfRequest
+    );
+  }
+
   return new Response(JSON.stringify({ error: 'Not found' }), {
     status: 404,
     headers: { 'Content-Type': 'application/json' },

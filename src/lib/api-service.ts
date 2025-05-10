@@ -359,3 +359,120 @@ export function updateSettings(settings: Partial<RoomSettings>): void {
     })
   );
 }
+
+/**
+ * Start a new game (moderator only)
+ */
+export async function startGame(name: string, roomKey: string): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/rooms/start-game`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, roomKey }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to start game: ${response.status}`);
+    }
+
+    await response.json();
+  } catch (error) {
+    console.error('Error starting game:', error);
+    throw error;
+  }
+}
+
+/**
+ * Submit a guess for the current drawing
+ */
+export async function submitGuess(
+  name: string,
+  roomKey: string,
+  guess: string
+): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/rooms/submit-guess`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, roomKey, guess }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to submit guess: ${response.status}`);
+    }
+
+    await response.json();
+  } catch (error) {
+    console.error('Error submitting guess:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update the current drawing (drawer only)
+ */
+export async function updateDrawing(
+  name: string,
+  roomKey: string,
+  drawingData: string
+): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/rooms/update-drawing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, roomKey, drawingData }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to update drawing: ${response.status}`);
+    }
+
+    await response.json();
+  } catch (error) {
+    console.error('Error updating drawing:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get the current game state
+ */
+export async function getGameState(
+  roomKey: string,
+  name?: string
+): Promise<RoomData> {
+  try {
+    const url = new URL(`${API_BASE_URL}/rooms/game-state`);
+    url.searchParams.append('roomKey', roomKey);
+    if (name) {
+      url.searchParams.append('name', name);
+    }
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to get game state: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.gameState;
+  } catch (error) {
+    console.error('Error getting game state:', error);
+    throw error;
+  }
+}

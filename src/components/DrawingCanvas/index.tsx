@@ -40,18 +40,70 @@ export function DrawingCanvas({
 	const [history, setHistory] = useState<ImageData[]>([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [isToolsOpen, setIsToolsOpen] = useState(false);
+	const MAX_HISTORY_SIZE = 20; // Limit history to prevent memory issues
 
 	const saveToHistory = () => {
 		const canvas = canvasRef.current;
 		const ctx = canvas?.getContext("2d");
 		if (!ctx || !canvas) return;
 
-		const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-		const newHistory = history.slice(0, historyIndex + 1);
-		newHistory.push(imageData);
-
-		setHistory(newHistory);
-		setHistoryIndex(newHistory.length - 1);
+		try {
+			// Create a scaled down version if canvas is too large
+			let width = canvas.width;
+			let height = canvas.height;
+			
+			// If canvas is very large, scale down the history storage
+			const MAX_DIMENSION = 2000;
+			const isLargeCanvas = width > MAX_DIMENSION || height > MAX_DIMENSION;
+			
+			if (isLargeCanvas) {
+				const scale = MAX_DIMENSION / Math.max(width, height);
+				width = Math.floor(width * scale);
+				height = Math.floor(height * scale);
+				
+				// Create a temporary scaled canvas for storage
+				const tempCanvas = document.createElement('canvas');
+				tempCanvas.width = width;
+				tempCanvas.height = height;
+				const tempCtx = tempCanvas.getContext('2d');
+				
+				if (!tempCtx) return;
+				
+				// Draw scaled version
+				tempCtx.drawImage(canvas, 0, 0, width, height);
+				const imageData = tempCtx.getImageData(0, 0, width, height);
+				
+				// Trim history if it's too large
+				const newHistory = history.slice(0, historyIndex + 1);
+				newHistory.push(imageData);
+				
+				// Limit history size
+				while (newHistory.length > MAX_HISTORY_SIZE) {
+					newHistory.shift();
+				}
+				
+				setHistory(newHistory);
+				setHistoryIndex(newHistory.length - 1);
+			} else {
+				// Regular behavior for smaller canvases
+				const imageData = ctx.getImageData(0, 0, width, height);
+				
+				// Trim history if it's too large
+				const newHistory = history.slice(0, historyIndex + 1);
+				newHistory.push(imageData);
+				
+				// Limit history size
+				while (newHistory.length > MAX_HISTORY_SIZE) {
+					newHistory.shift();
+				}
+				
+				setHistory(newHistory);
+				setHistoryIndex(newHistory.length - 1);
+			}
+		} catch (err) {
+			console.error("Failed to save canvas history:", err);
+			// Continue without saving history if we encounter memory issues
+		}
 	};
 
 	const undo = () => {
@@ -61,12 +113,38 @@ export function DrawingCanvas({
 		const ctx = canvas?.getContext("2d");
 		if (!ctx || !canvas) return;
 
-		const newIndex = historyIndex - 1;
-		const imageData = history[newIndex];
-		if (!imageData) return;
+		try {
+			const newIndex = historyIndex - 1;
+			const imageData = history[newIndex];
+			if (!imageData) return;
 
-		ctx.putImageData(imageData, 0, 0);
-		setHistoryIndex(newIndex);
+			// If we stored a scaled version, we need to scale back up
+			if (imageData.width !== canvas.width || imageData.height !== canvas.height) {
+				// Create a temporary canvas with the scaled size
+				const tempCanvas = document.createElement('canvas');
+				tempCanvas.width = imageData.width;
+				tempCanvas.height = imageData.height;
+				const tempCtx = tempCanvas.getContext('2d');
+				
+				if (!tempCtx) return;
+				
+				// Put the image data into the temp canvas
+				tempCtx.putImageData(imageData, 0, 0);
+				
+				// Clear the main canvas
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				
+				// Draw the temp canvas onto the main canvas, scaling it up
+				ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+			} else {
+				// Regular behavior for same-sized images
+				ctx.putImageData(imageData, 0, 0);
+			}
+			
+			setHistoryIndex(newIndex);
+		} catch (err) {
+			console.error("Failed to undo:", err);
+		}
 	};
 
 	const redo = () => {
@@ -76,20 +154,58 @@ export function DrawingCanvas({
 		const ctx = canvas?.getContext("2d");
 		if (!ctx || !canvas) return;
 
-		const newIndex = historyIndex + 1;
-		const imageData = history[newIndex];
-		if (!imageData) return;
+		try {
+			const newIndex = historyIndex + 1;
+			const imageData = history[newIndex];
+			if (!imageData) return;
 
-		ctx.putImageData(imageData, 0, 0);
-		setHistoryIndex(newIndex);
+			// If we stored a scaled version, we need to scale back up
+			if (imageData.width !== canvas.width || imageData.height !== canvas.height) {
+				// Create a temporary canvas with the scaled size
+				const tempCanvas = document.createElement('canvas');
+				tempCanvas.width = imageData.width;
+				tempCanvas.height = imageData.height;
+				const tempCtx = tempCanvas.getContext('2d');
+				
+				if (!tempCtx) return;
+				
+				// Put the image data into the temp canvas
+				tempCtx.putImageData(imageData, 0, 0);
+				
+				// Clear the main canvas
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				
+				// Draw the temp canvas onto the main canvas, scaling it up
+				ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+			} else {
+				// Regular behavior for same-sized images
+				ctx.putImageData(imageData, 0, 0);
+			}
+			
+			setHistoryIndex(newIndex);
+		} catch (err) {
+			console.error("Failed to redo:", err);
+		}
 	};
 
 	const clearCanvas = () => {
 		const canvas = canvasRef.current;
 		const ctx = canvas?.getContext("2d");
 		if (!ctx || !canvas) return;
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		saveToHistory();
+		
+		try {
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			saveToHistory();
+		} catch (err) {
+			console.error("Failed to clear canvas:", err);
+			
+			// Fallback if saveToHistory fails
+			try {
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+			} catch (e) {
+				console.error("Critical failure in clearCanvas:", e);
+			}
+		}
 	};
 
 	const initCanvas = () => {
@@ -97,9 +213,16 @@ export function DrawingCanvas({
 		const ctx = canvas?.getContext("2d");
 		if (!ctx || !canvas) return;
 
-		const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-		setHistory([imageData]);
-		setHistoryIndex(0);
+		try {
+			const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			setHistory([imageData]);
+			setHistoryIndex(0);
+		} catch (err) {
+			console.error("Failed to initialize canvas:", err);
+			// Initialize with empty history if we can't get image data
+			setHistory([]);
+			setHistoryIndex(-1);
+		}
 	};
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>

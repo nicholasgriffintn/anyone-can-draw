@@ -1,16 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { GameState, User, GameListItem } from "../types";
 import { DEFAULT_GAME_STATE } from "../constants";
-
-const BASE_URL =
-	process.env.NODE_ENV === "development"
-		? "ws://localhost:8786"
-		: "wss://website-multiplayer.nickgriffin.uk";
+import {
+	connectToRoom,
+	disconnectFromRoom,
+	updateDrawing as apiUpdateDrawing,
+	submitGuess as apiSubmitGuess,
+	startGame as apiStartGame,
+	addEventListener,
+	removeEventListener,
+	isConnected as apiIsConnected,
+} from "../../../lib/api-service";
 
 export function useGameState(
-	initialGameId: string | null = null,
 	playerId: string,
 	playerName: string,
+	initialGameId: string | null = null,
 	clearCanvas?: () => void,
 ) {
 	const [gameState, setGameState] = useState<GameState>({
@@ -20,250 +25,175 @@ export function useGameState(
 	const [users, setUsers] = useState<Array<User>>([]);
 	const [isConnected, setIsConnected] = useState(false);
 	const [availableGames, setAvailableGames] = useState<GameListItem[]>([]);
-	const wsRef = useRef<WebSocket | null>(null);
+	
+	// Use a ref to track the previous isLobby state to avoid excessive clearCanvas calls
+	const prevIsLobbyRef = useRef<boolean | null>(null);
 
+	// Callback to update the game state when we receive updates from the WebSocket
+	const handleGameUpdate = useCallback((data: any) => {
+		// Map API data to our GameState format
+		if (data) {
+			setGameState((prevState) => ({
+				...prevState,
+				gameId: data.key,
+				gameName: data.key,
+				isActive: data.isActive || false,
+				isLobby: data.isLobby !== false,
+				targetWord: data.targetWord || "",
+				timeRemaining: data.timeRemaining || 0,
+				drawingData: data.drawingData || "",
+				hasWon: data.hasWon || false,
+				currentDrawer: data.currentDrawer || "",
+			}));
+
+			// Map users from the API format
+			if (data.users) {
+				const mappedUsers = data.users.map((userId: string) => ({
+					id: userId,
+					name: userId,
+					score: data.scores?.[userId] || 0,
+					isDrawing: userId === data.currentDrawer,
+					isConnected: data.connectedUsers?.[userId] || false,
+				}));
+				setUsers(mappedUsers);
+			}
+		}
+	}, []);
+
+	// Connect to WebSocket when component mounts or changes
 	useEffect(() => {
-		const ws = new WebSocket(`${BASE_URL}/anyone-can-draw`);
-		wsRef.current = ws;
-
-		ws.onopen = () => {
-			setIsConnected(true);
-			ws.send(JSON.stringify({ action: "getGames" }));
-
-			if (gameState.gameId) {
-				ws.send(
-					JSON.stringify({
-						action: "join",
-						gameId: gameState.gameId,
-						playerId,
-						playerName,
-					}),
-				);
+		if (gameState.gameId && playerId) {
+			connectToRoom(gameState.gameId, playerId, handleGameUpdate);
+			
+			// Handle connection status
+			const connectionHandler = () => {
+				setIsConnected(apiIsConnected());
+			};
+			
+			addEventListener('disconnected', connectionHandler);
+			addEventListener('error', connectionHandler);
+			
+			// WebSocket events for game state updates
+			const gameStateTypes = [
+				'initialize', 
+				'userJoined', 
+				'userConnectionStatus',
+				'gameStarted',
+				'timeUpdate',
+				'drawingUpdate',
+				'newGuess',
+				'correctGuess',
+				'roundEnd',
+				'youAreDrawing'
+			];
+			
+			for (const type of gameStateTypes) {
+				addEventListener(type as any, connectionHandler);
 			}
-		};
-
-		ws.onmessage = (event) => {
-			try {
-				const data = JSON.parse(event.data);
-
-				switch (data.type) {
-					case "gamesList":
-						setAvailableGames(data.games);
-						break;
-					case "gameState": {
-						const isParticipant = data.users.some(
-							(user: User) => user.id === playerId,
-						);
-
-						if (isParticipant) {
-							setGameState((prevState) => ({
-								...prevState,
-								...data.gameState,
-								gameId: data.gameId,
-								gameName: data.gameName,
-							}));
-							setUsers(data.users);
-						} else {
-							setGameState({
-								...DEFAULT_GAME_STATE,
-								gameId: null,
-							});
-							setUsers([]);
-						}
-						break;
-					}
-					case "drawingUpdate":
-						setGameState((prevState) => ({
-							...prevState,
-							drawingData: data.drawingData,
-						}));
-						break;
-					case "gameCreated":
-						if (data.users.some((user: User) => user.id === playerId)) {
-							setGameState((prevState) => ({
-								...prevState,
-								...data.gameState,
-								gameId: data.gameId,
-								gameName: data.gameName,
-							}));
-							setUsers(data.users);
-						}
-						ws.send(JSON.stringify({ action: "getGames" }));
-						break;
-					case "gameStarted":
-						clearCanvas?.();
-						break;
-					case "gameEnded":
-						setGameState(data.gameState);
-						setUsers(data.users);
-						break;
-					case "error":
-						console.error("Game error:", data.message);
-						break;
+			
+			return () => {
+				disconnectFromRoom();
+				
+				removeEventListener('disconnected', connectionHandler);
+				removeEventListener('error', connectionHandler);
+				
+				for (const type of gameStateTypes) {
+					removeEventListener(type as any, connectionHandler);
 				}
-			} catch (error) {
-				console.error("Error parsing WebSocket message:", error);
-			}
-		};
+			};
+		}
+	}, [gameState.gameId, playerId, handleGameUpdate]);
 
-		ws.onclose = () => {
-			setIsConnected(false);
-			console.info("WebSocket closed");
-			setTimeout(() => {
-				if (wsRef.current?.readyState === WebSocket.CLOSED) {
-					wsRef.current = null;
-				}
-			}, 5000);
-		};
+	// Update connection status based on API's connection state
+	useEffect(() => {
+		setIsConnected(apiIsConnected());
+	}, []);
 
-		ws.onerror = (error) => {
-			console.error("WebSocket error:", error);
-			setIsConnected(false);
-		};
-
-		return () => {
-			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(
-					JSON.stringify({
-						action: "leave",
-						playerId,
-					}),
-				);
-				ws.close();
-			}
-		};
-	}, [playerId, playerName]);
+	// Handle game end or round end events - only clear canvas when transitioning from game to lobby
+	useEffect(() => {
+		// Only clear canvas when we transition from game to lobby
+		// This prevents infinite re-renders and excessive memory usage
+		if (clearCanvas && gameState.isLobby && prevIsLobbyRef.current === false) {
+			// We're transitioning from active game to lobby, clear canvas once
+			clearCanvas();
+		}
+		
+		// Update the ref with current value
+		prevIsLobbyRef.current = gameState.isLobby;
+	}, [gameState.isLobby, clearCanvas]);
 
 	const createGame = useCallback(
 		async (gameName: string) => {
-			if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-				console.error("WebSocket not connected");
-				return;
-			}
-
-			wsRef.current.send(
-				JSON.stringify({
-					action: "createGame",
-					gameName,
-					playerId,
-					playerName,
-				}),
-			);
+			// We'll use the room creation API from api-service.ts
+			// The API will handle this when the user creates a room
 		},
-		[playerId, playerName],
+		[],
 	);
 
 	const joinGame = useCallback(
 		async (gameIdToJoin: string) => {
-			if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-				console.error("WebSocket not connected");
-				return;
-			}
-
-			wsRef.current.send(
-				JSON.stringify({
-					action: "join",
-					gameId: gameIdToJoin,
-					playerId,
-					playerName,
-				}),
-			);
+			// Set the game ID in state, which will trigger the WebSocket connection in the useEffect
+			setGameState(prevState => ({
+				...prevState,
+				gameId: gameIdToJoin,
+			}));
 		},
-		[playerId, playerName],
+		[],
 	);
 
 	const startGame = useCallback(async () => {
-		if (
-			!wsRef.current ||
-			wsRef.current.readyState !== WebSocket.OPEN ||
-			!gameState.gameId
-		) {
-			console.error("WebSocket not connected or no gameId");
-			return;
+		if (!gameState.gameId) return;
+		
+		try {
+			await apiStartGame(playerId, gameState.gameId);
+		} catch (error) {
+			console.error("Error starting game:", error);
 		}
-
-		wsRef.current.send(
-			JSON.stringify({
-				action: "startGame",
-				gameId: gameState.gameId,
-				playerId,
-			}),
-		);
 	}, [gameState.gameId, playerId]);
 
 	const endGame = useCallback(async () => {
-		if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-			console.error("WebSocket not connected");
-			return;
-		}
-
-		wsRef.current.send(
-			JSON.stringify({
-				action: "leave",
-				gameId: gameState.gameId,
-				playerId,
-			}),
-		);
-	}, [gameState.gameId, playerId]);
+		// Just disconnect from the room
+		disconnectFromRoom();
+		
+		setGameState({
+			...DEFAULT_GAME_STATE,
+			gameId: null,
+		});
+		setUsers([]);
+	}, []);
 
 	const leaveGame = useCallback(() => {
-		if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-			console.error("WebSocket not connected");
-			return;
-		}
-
-		wsRef.current.send(
-			JSON.stringify({
-				action: "leave",
-				gameId: gameState.gameId,
-				playerId,
-			}),
-		);
-
-		setGameState((prevState) => ({
-			...prevState,
+		disconnectFromRoom();
+		
+		setGameState({
+			...DEFAULT_GAME_STATE,
 			gameId: null,
-			gameName: "",
-			isActive: false,
-			isLobby: true,
-		}));
+		});
 		setUsers([]);
-
-		wsRef.current.send(JSON.stringify({ action: "getGames" }));
-	}, [playerId, gameState.gameId]);
+	}, []);
 
 	const updateDrawing = useCallback(
 		async (drawingData: string) => {
-			if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-				return;
+			if (!gameState.gameId) return;
+			
+			try {
+				await apiUpdateDrawing(playerId, gameState.gameId, drawingData);
+			} catch (error) {
+				console.error("Error updating drawing:", error);
 			}
-
-			wsRef.current.send(
-				JSON.stringify({
-					action: "updateDrawing",
-					gameId: gameState.gameId,
-					drawingData,
-				}),
-			);
 		},
 		[gameState.gameId, playerId],
 	);
 
 	const submitGuess = useCallback(
 		async (guess: string) => {
-			if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-				console.error("WebSocket not connected");
-				return;
+			if (!gameState.gameId) return;
+			
+			try {
+				await apiSubmitGuess(playerId, gameState.gameId, guess);
+			} catch (error) {
+				console.error("Error submitting guess:", error);
 			}
-
-			wsRef.current.send(
-				JSON.stringify({
-					action: "submitGuess",
-					gameId: gameState.gameId,
-					playerId,
-					guess,
-				}),
-			);
 		},
 		[gameState.gameId, playerId],
 	);

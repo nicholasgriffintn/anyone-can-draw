@@ -285,7 +285,9 @@ export function RoomScreen() {
         <div className="flex flex-col p-4 md:p-6 overflow-y-auto space-y-8">
           <div>
             <GameScreen
-              user={roomData.users[0]}
+              user={{
+                id: roomData.users[0],
+              }}
               onGenerateDrawing={() => Promise.resolve({})}
             />
           </div>

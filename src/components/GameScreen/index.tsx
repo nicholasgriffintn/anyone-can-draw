@@ -10,9 +10,6 @@ export function GameScreen({
 }: {
 	user: {
 		id: string;
-		name: string;
-		email: string;
-		image: string;
 	};
 	onGenerateDrawing: (drawingData: string) => Promise<any>;
 }) {

@@ -14,7 +14,6 @@ import {
 
 export function useGameState(
 	playerId: string,
-	playerName: string,
 	initialGameId: string | null = null,
 	clearCanvas?: () => void,
 ) {
@@ -24,7 +23,7 @@ export function useGameState(
 	});
 	const [users, setUsers] = useState<Array<User>>([]);
 	const [isConnected, setIsConnected] = useState(false);
-	const [availableGames, setAvailableGames] = useState<GameListItem[]>([]);
+	const [availableGames, _setAvailableGames] = useState<GameListItem[]>([]);
 	
 	// Use a ref to track the previous isLobby state to avoid excessive clearCanvas calls
 	const prevIsLobbyRef = useRef<boolean | null>(null);
@@ -123,7 +122,7 @@ export function useGameState(
 	}, [gameState.isLobby, clearCanvas]);
 
 	const createGame = useCallback(
-		async (gameName: string) => {
+		async () => {
 			// We'll use the room creation API from api-service.ts
 			// The API will handle this when the user creates a room
 		},

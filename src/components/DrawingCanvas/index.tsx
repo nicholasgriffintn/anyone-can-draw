@@ -263,7 +263,6 @@ export function DrawingCanvas({
 	};
 
 	const playerId = user?.id || "";
-	const playerName = user?.name || "";
 
 	const {
 		isConnected,
@@ -278,7 +277,7 @@ export function DrawingCanvas({
 		updateDrawing,
 		submitGuess,
 	} = gameMode
-		? useGameState(playerId, playerName, gameId, clearCanvas)
+		? useGameState(playerId, gameId, clearCanvas)
 		: {
 				isConnected: false,
 				gameState: DEFAULT_GAME_STATE,

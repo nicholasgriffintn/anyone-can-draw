@@ -42,18 +42,18 @@ export function RoomScreen() {
   // Join room from URL parameters
   useEffect(() => {
     if (didCheckUrlParams.current) return;
-    
+
     didCheckUrlParams.current = true;
-    
+
     try {
       const url = new URL(window.location.href);
       const joinParam = url.searchParams.get('join');
-      
+
       // Check if URL contains ?join=roomKey
       if (joinParam && joinParam.length > 0) {
         setRoomKey(joinParam.toUpperCase());
         setScreen('join');
-        
+
         window.history.replaceState({}, document.title, '/');
       }
     } catch (err) {
@@ -103,7 +103,7 @@ export function RoomScreen() {
       };
 
       const eventTypes: WebSocketMessageType[] = ['disconnected', 'error'];
-      
+
       for (const type of eventTypes) {
         addEventListener(type, errorHandler);
       }
@@ -221,40 +221,44 @@ export function RoomScreen() {
   return (
     <div className="flex flex-col h-screen">
       {error && <ErrorBanner message={error} onClose={onClearError} />}
-      
+
       <header className="p-4 bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 md:space-x-4">
             <h1 className="text-lg md:text-xl font-bold">Anyone Can Draw</h1>
-            <div className="flex items-stretch h-7">
-              <div className="px-2 md:px-3 py-1 text-xs md:text-sm bg-teal-800 rounded-l-md truncate max-w-[80px] md:max-w-none flex items-center">
-                {roomData.key}
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(true)}
-                className="px-2 py-1 bg-teal-700 hover:bg-teal-800 rounded-r-md border-l border-teal-600 flex items-center"
-                title="Share Room"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <title>Share Room</title>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={handleLeaveRoom}
-              className="text-xs md:text-sm px-2 md:px-3 py-1 bg-teal-700 hover:bg-teal-800 rounded-md transition-colors"
-              title="Leave Room"
-            >
-              Leave Room
-            </button>
+            {isConnected() && (
+              <>
+                <div className="flex items-stretch h-7">
+                  <div className="px-2 md:px-3 py-1 text-xs md:text-sm bg-teal-800 rounded-l-md truncate max-w-[80px] md:max-w-none flex items-center">
+                    {roomData.key}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsShareModalOpen(true)}
+                    className="px-2 py-1 bg-teal-700 hover:bg-teal-800 rounded-r-md border-l border-teal-600 flex items-center"
+                    title="Share Room"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <title>Share Room</title>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLeaveRoom}
+                  className="text-xs md:text-sm px-2 md:px-3 py-1 bg-teal-700 hover:bg-teal-800 rounded-md transition-colors"
+                  title="Leave Room"
+                >
+                  Leave Room
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-4">
             <ConnectionStatus isConnected={isConnected()} />
-            {isConnected() && ( 
+            {isConnected() && (
               <div className="hidden sm:block text-xs md:text-sm px-2 md:px-3 py-1 bg-teal-800 rounded-md">
                 {isModeratorView ? 'Moderator' : 'Player'}
               </div>
@@ -279,14 +283,14 @@ export function RoomScreen() {
 
       <div className="flex-1 h-full">
         <div className="flex flex-col p-4 md:p-6 overflow-y-auto space-y-8">
-					<div>
-						<GameScreen
-							user={roomData.users[0]}
-							onGenerateDrawing={() => Promise.resolve({})}
-						/>
-					</div>
-				</div>
-			</div>
+          <div>
+            <GameScreen
+              user={roomData.users[0]}
+              onGenerateDrawing={() => Promise.resolve({})}
+            />
+          </div>
+        </div>
+      </div>
 
       <SettingsModal
         isOpen={isSettingsModalOpen}

@@ -35,7 +35,8 @@ export function DrawingCanvas({
   const [isFillMode, setIsFillMode] = useState(false);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const [showLeftPanel, setShowLeftPanel] = useState(false);
+  const [showRightPanel, setShowRightPanel] = useState(false);
 
   const saveToHistory = () => {
     const canvas = canvasRef.current;
@@ -162,7 +163,7 @@ export function DrawingCanvas({
   const displaySidebar = !gameState.isActive || isDrawer;
 
   const DrawingTools = () => (
-    <div className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+    <div className="flex flex-col gap-3">
       <Header undo={undo} redo={redo} history={history} historyIndex={historyIndex} />
       <ToolPicker isFillMode={isFillMode} setIsFillMode={setIsFillMode} />
       <LineWidthPicker lineWidth={lineWidth} setLineWidth={setLineWidth} />
@@ -170,7 +171,7 @@ export function DrawingCanvas({
       <button
         type="button"
         onClick={clearCanvas}
-        className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
+        className="w-full px-3 py-2 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 hover:bg-red-100 transition-colors"
       >
         Clear Canvas
       </button>
@@ -178,49 +179,64 @@ export function DrawingCanvas({
   );
 
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900">
-            Draw, Guess, Create
-          </h2>
-          <p className="text-sm text-slate-600">
-            Sketch and challenge the AI or jump into a live game.
-          </p>
-        </div>
-        {apiResult && (
+    <div className="h-full flex flex-col">
+      {apiResult && (
+        <div className="flex-shrink-0 px-4 py-2 border-b border-slate-200 bg-white flex items-center justify-between">
+          <span className="text-sm font-medium text-slate-700">AI Result</span>
           <button
             type="button"
             onClick={() => setApiResult(null)}
-            className="px-3 py-2 rounded-md border border-slate-200 text-sm"
+            className="px-3 py-1.5 rounded-md border border-slate-200 text-sm hover:bg-slate-50"
           >
             New Drawing
           </button>
+        </div>
+      )}
+
+      <div className="lg:hidden flex-shrink-0 px-4 py-2 border-b border-slate-200 bg-white flex gap-2">
+        {displaySidebar && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowLeftPanel(!showLeftPanel);
+              setShowRightPanel(false);
+            }}
+            className="flex-1 px-3 py-1.5 rounded-md border border-slate-200 text-sm hover:bg-slate-50"
+          >
+            {showLeftPanel ? "Hide Tools" : "Show Tools"}
+          </button>
         )}
+        <button
+          type="button"
+          onClick={() => {
+            setShowRightPanel(!showRightPanel);
+            setShowLeftPanel(false);
+          }}
+          className="flex-1 px-3 py-1.5 rounded-md border border-slate-200 text-sm hover:bg-slate-50"
+        >
+          {showRightPanel ? "Hide Panel" : "Show Panel"}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr_320px] gap-4">
-        <div className="order-2 xl:order-1">
-          {displaySidebar && (
-            <>
-              <div className="xl:hidden">
-                <button
-                  type="button"
-                  onClick={() => setIsToolsOpen((open) => !open)}
-                  className="w-full px-3 py-2 rounded-md border border-slate-200 text-sm mb-3"
-                >
-                  {isToolsOpen ? "Hide Tools" : "Show Tools"}
-                </button>
-                {isToolsOpen && <DrawingTools />}
-              </div>
-              <div className="hidden xl:block">
+      <div className="flex-1 flex overflow-hidden relative">
+        {displaySidebar && (
+          <>
+            <div className="hidden lg:block w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
+              <div className="p-3">
                 <DrawingTools />
               </div>
-            </>
-          )}
-        </div>
+            </div>
+            {showLeftPanel && (
+              <div className="lg:hidden absolute inset-y-0 left-0 w-64 z-10 border-r border-slate-200 bg-white overflow-y-auto shadow-lg">
+                <div className="p-3">
+                  <DrawingTools />
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
-        <div className="order-1 xl:order-2">
+        <div className="flex-1 flex items-center justify-center p-2 sm:p-4 overflow-auto">
           {!apiResult ? (
             <Canvas
               canvasRef={canvasRef}
@@ -237,16 +253,18 @@ export function DrawingCanvas({
           )}
         </div>
 
-        <div className="order-3 flex flex-col gap-4">
+        <div className="hidden lg:flex w-80 flex-shrink-0 border-l border-slate-200 bg-white flex-col overflow-hidden">
           {!apiResult && !gameState.isActive && (
-            <GenerateDrawing
-              handleSubmit={handleSubmit}
-              loading={loading}
-              gameState={gameState}
-            />
+            <div className="flex-shrink-0 border-b border-slate-200">
+              <GenerateDrawing
+                handleSubmit={handleSubmit}
+                loading={loading}
+                gameState={gameState}
+              />
+            </div>
           )}
 
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+          <div className="flex-shrink-0 border-b border-slate-200">
             <GameStatus
               users={users}
               gameState={gameState}
@@ -264,13 +282,56 @@ export function DrawingCanvas({
           </div>
 
           {gameState.isActive && (
-            <Chat
-              gameState={gameState}
-              onGuess={submitGuess}
-              isDrawer={isDrawer}
-            />
+            <div className="flex-1 overflow-hidden">
+              <Chat
+                gameState={gameState}
+                onGuess={submitGuess}
+                isDrawer={isDrawer}
+              />
+            </div>
           )}
         </div>
+
+        {showRightPanel && (
+          <div className="lg:hidden absolute inset-y-0 right-0 w-80 z-10 border-l border-slate-200 bg-white flex flex-col overflow-hidden shadow-lg">
+            {!apiResult && !gameState.isActive && (
+              <div className="flex-shrink-0 border-b border-slate-200">
+                <GenerateDrawing
+                  handleSubmit={handleSubmit}
+                  loading={loading}
+                  gameState={gameState}
+                />
+              </div>
+            )}
+
+            <div className="flex-shrink-0 border-b border-slate-200">
+              <GameStatus
+                users={users}
+                gameState={gameState}
+                availableGames={availableGames}
+                onCreateGame={createGame}
+                onJoinGame={joinGame}
+                onStartGame={startGame}
+                onEndGame={endGame}
+                onLeaveGame={leaveGame}
+                isConnected={isConnected}
+                isDrawer={isDrawer}
+                playerName={playerName}
+                onPlayerNameChange={onPlayerNameChange}
+              />
+            </div>
+
+            {gameState.isActive && (
+              <div className="flex-1 overflow-hidden">
+                <Chat
+                  gameState={gameState}
+                  onGuess={submitGuess}
+                  isDrawer={isDrawer}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

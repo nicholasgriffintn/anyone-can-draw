@@ -35,20 +35,20 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+      <header className="border-b border-slate-200 bg-white flex-shrink-0">
+        <div className="px-4 py-3 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">
-              {app.name}
-            </h1>
-            <p className="text-sm text-slate-600">
+            <h1 className="text-xl font-semibold text-slate-900">{app.name}</h1>
+            <p className="text-xs text-slate-600">
               Draw solo, or jump into a live round with friends.
             </p>
           </div>
           {app.githubRepo && (
             <a
               href={app.githubRepo}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-sm text-slate-600 hover:text-slate-900"
             >
               View source
@@ -57,7 +57,7 @@ const App = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="flex-1 overflow-hidden">
         <DrawingCanvas
           playerId={playerId}
           playerName={playerName}

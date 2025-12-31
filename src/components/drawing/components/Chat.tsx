@@ -19,26 +19,28 @@ export function Chat({
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex-1">
-      <h3 className="font-medium mb-2 text-slate-800">Game Guesses</h3>
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
-        {gameState.guesses.map((guess, index) => (
-          <div
-            key={`${guess.playerId}-${index}`}
-            className={`text-sm p-2 rounded ${
-              guess.correct ? "bg-green-50 border border-green-200" : "bg-slate-50"
-            }`}
-          >
-            <span className="font-medium text-slate-800">
-              {guess.playerName}:
-            </span>{" "}
-            {guess.correct && !isDrawer
-              ? `You guessed correctly with ${guess.guess}!`
-              : guess.guess}
-          </div>
-        ))}
+    <div className="h-full flex flex-col p-4">
+      <h3 className="font-medium mb-3 text-slate-800 text-sm">Game Chat</h3>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 space-y-2 overflow-y-auto mb-3">
+          {gameState.guesses.map((guess, index) => (
+            <div
+              key={`${guess.playerId}-${index}`}
+              className={`text-sm p-2 rounded ${
+                guess.correct ? "bg-green-50 border border-green-200" : "bg-slate-50"
+              }`}
+            >
+              <span className="font-medium text-slate-800">
+                {guess.playerName}:
+              </span>{" "}
+              {guess.correct && !isDrawer
+                ? `You guessed correctly with ${guess.guess}!`
+                : guess.guess}
+            </div>
+          ))}
+        </div>
         {!isDrawer && (
-          <form onSubmit={handleGuess} className="mt-4 flex gap-2">
+          <form onSubmit={handleGuess} className="flex gap-2">
             <input
               type="text"
               name="guess"
@@ -48,7 +50,7 @@ export function Chat({
             />
             <button
               type="submit"
-              className="bg-slate-900 text-white px-4 py-2 rounded-md text-sm"
+              className="bg-slate-900 text-white px-4 py-2 rounded-md text-sm hover:bg-slate-800 transition-colors"
             >
               Guess
             </button>

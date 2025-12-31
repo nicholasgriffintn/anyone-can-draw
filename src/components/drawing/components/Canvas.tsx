@@ -148,12 +148,18 @@ export function Canvas({
       </span>
       <canvas
         ref={canvasRef}
-        width={800}
-        height={650}
-        className={`bg-white w-full h-auto max-h-[80vh] border border-slate-200 rounded-lg touch-none ${
+        width={1200}
+        height={800}
+        className={`bg-white border border-slate-200 rounded-lg touch-none shadow-sm ${
           isReadOnly ? "cursor-default" : "cursor-crosshair"
         }`}
-        style={{ aspectRatio: "800 / 650" }}
+        style={{
+          width: '100%',
+          height: '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          objectFit: 'contain'
+        }}
         onMouseDown={startDrawing}
         onMouseUp={stopDrawing}
         onMouseOut={stopDrawing}

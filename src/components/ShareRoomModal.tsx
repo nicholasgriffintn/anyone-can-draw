@@ -77,7 +77,7 @@ const ShareRoomModal: FC<ShareRoomModalProps> = ({
           </div>
           
           <div className="text-sm text-gray-500 italic">
-            Anyone with this link can join this room.
+            Anyone with this link can join this planning room.
           </div>
         </div>
       </div>

@@ -1,21 +1,13 @@
 import type { RoomData, RoomSettings } from '../types';
+import { config } from '../config';
 
-const API_BASE_URL = import.meta.env.DEV
-  ? 'http://localhost:5173/api'
-  : 'https://anyonecandraw.app/api';
-
-const WS_BASE_URL = import.meta.env.DEV
-  ? 'ws://localhost:5173/ws'
-  : 'wss://anyonecandraw.app/ws';
+const { api, websocket } = config;
 
 let activeSocket: WebSocket | null = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_BASE_DELAY = 1000;
-const MAX_RECONNECT_DELAY = 30000;
 const eventListeners: Record<string, ((data: WebSocketMessage) => void)[]> = {};
 
-export type WebSocketMessageType = 
+export type WebSocketMessageType =
   | 'initialize'
   | 'userJoined'
   | 'userLeft'
@@ -33,13 +25,13 @@ interface WebSocketMessage {
 }
 
 /**
- * Create a new room
+ * Create a new planning poker room
  * @param {string} name - The name of the user creating the room
  * @returns {Promise<RoomData>} - The room data
  */
 export async function createRoom(name: string): Promise<RoomData> {
   try {
-    const response = await fetch(`${API_BASE_URL}/rooms`, {
+    const response = await fetch(`${api.baseUrl}/rooms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,7 +41,9 @@ export async function createRoom(name: string): Promise<RoomData> {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to create room: ${response.status}`);
+      throw new Error(
+        errorData.error || `Failed to create room: ${response.status}`
+      );
     }
 
     const data = await response.json();
@@ -61,14 +55,17 @@ export async function createRoom(name: string): Promise<RoomData> {
 }
 
 /**
- * Join an existing room
+ * Join an existing planning poker room
  * @param {string} name - The name of the user joining the room
  * @param {string} roomKey - The unique key for the room
  * @returns {Promise<RoomData>} - The room data
  */
-export async function joinRoom(name: string, roomKey: string): Promise<RoomData> {
+export async function joinRoom(
+  name: string,
+  roomKey: string
+): Promise<RoomData> {
   try {
-    const response = await fetch(`${API_BASE_URL}/rooms/join`, {
+    const response = await fetch(`${api.baseUrl}/rooms/join`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -78,7 +75,9 @@ export async function joinRoom(name: string, roomKey: string): Promise<RoomData>
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to join room: ${response.status}`);
+      throw new Error(
+        errorData.error || `Failed to join room: ${response.status}`
+      );
     }
 
     const data = await response.json();
@@ -97,8 +96,8 @@ export async function joinRoom(name: string, roomKey: string): Promise<RoomData>
  * @returns {WebSocket} - The WebSocket connection
  */
 export function connectToRoom(
-  roomKey: string, 
-  name: string, 
+  roomKey: string,
+  name: string,
   onRoomUpdate: (data: RoomData) => void
 ): WebSocket {
   if (activeSocket) {
@@ -109,7 +108,9 @@ export function connectToRoom(
 
   try {
     const socket = new WebSocket(
-      `${WS_BASE_URL}?room=${encodeURIComponent(roomKey)}&name=${encodeURIComponent(name)}`
+      `${api.wsBaseUrl}?room=${encodeURIComponent(
+        roomKey
+      )}&name=${encodeURIComponent(name)}`
     );
 
     socket.onopen = () => {
@@ -159,9 +160,9 @@ export function connectToRoom(
 
     socket.onerror = (error) => {
       console.error('WebSocket error:', error);
-      triggerEventListeners('error', { 
+      triggerEventListeners('error', {
         type: 'error',
-        error: 'Connection error occurred' 
+        error: 'Connection error occurred',
       });
     };
 
@@ -169,9 +170,10 @@ export function connectToRoom(
     return socket;
   } catch (error) {
     console.error('Error creating WebSocket:', error);
-    triggerEventListeners('error', { 
+    triggerEventListeners('error', {
       type: 'error',
-      error: error instanceof Error ? error.message : 'Failed to connect to server' 
+      error:
+        error instanceof Error ? error.message : 'Failed to connect to server',
     });
     throw error;
   }
@@ -181,21 +183,23 @@ export function connectToRoom(
  * Handle reconnection logic with exponential backoff
  */
 function handleReconnect(
-  roomKey: string, 
-  name: string, 
+  roomKey: string,
+  name: string,
   onRoomUpdate: (data: RoomData) => void
 ): void {
-  if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+  if (reconnectAttempts < websocket.maxReconnectAttempts) {
     reconnectAttempts++;
 
     const jitter = Math.random() * 0.3 + 0.85; // Random value between 0.85 and 1.15
     const delay = Math.min(
-      RECONNECT_BASE_DELAY * 2 ** reconnectAttempts * jitter, 
-      MAX_RECONNECT_DELAY
+      websocket.reconnectBaseDelay * 2 ** reconnectAttempts * jitter,
+      websocket.maxReconnectDelay
     );
 
     console.log(
-      `Attempting to reconnect in ${Math.round(delay)}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`
+      `Attempting to reconnect in ${Math.round(
+        delay
+      )}ms (attempt ${reconnectAttempts}/${websocket.maxReconnectAttempts})`
     );
 
     setTimeout(() => {
@@ -226,7 +230,7 @@ export function disconnectFromRoom(): void {
  * @param {function} callback - The callback function
  */
 export function addEventListener(
-  event: WebSocketMessageType, 
+  event: WebSocketMessageType,
   callback: (data: WebSocketMessage) => void
 ): void {
   if (!eventListeners[event]) {
@@ -241,7 +245,7 @@ export function addEventListener(
  * @param {function} callback - The callback function to remove
  */
 export function removeEventListener(
-  event: WebSocketMessageType, 
+  event: WebSocketMessageType,
   callback: (data: WebSocketMessage) => void
 ): void {
   if (!eventListeners[event]) return;
@@ -254,7 +258,10 @@ export function removeEventListener(
  * @param {WebSocketMessageType} event - The event type
  * @param {object} data - The event data
  */
-function triggerEventListeners(event: WebSocketMessageType, data: WebSocketMessage): void {
+function triggerEventListeners(
+  event: WebSocketMessageType,
+  data: WebSocketMessage
+): void {
   if (!eventListeners[event]) return;
 
   for (const callback of eventListeners[event]) {
@@ -289,16 +296,21 @@ export function getConnectionState(): number | null {
  */
 export async function getRoomSettings(roomKey: string): Promise<RoomSettings> {
   try {
-    const response = await fetch(`${API_BASE_URL}/rooms/settings?roomKey=${encodeURIComponent(roomKey)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `${api.baseUrl}/rooms/settings?roomKey=${encodeURIComponent(roomKey)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to get room settings: ${response.status}`);
+      throw new Error(
+        errorData.error || `Failed to get room settings: ${response.status}`
+      );
     }
 
     const data = await response.json();
@@ -317,12 +329,12 @@ export async function getRoomSettings(roomKey: string): Promise<RoomSettings> {
  * @returns {Promise<RoomSettings>} - The updated room settings
  */
 export async function updateRoomSettings(
-  name: string, 
-  roomKey: string, 
+  name: string,
+  roomKey: string,
   settings: Partial<RoomSettings>
 ): Promise<RoomSettings> {
   try {
-    const response = await fetch(`${API_BASE_URL}/rooms/settings`, {
+    const response = await fetch(`${api.baseUrl}/rooms/settings`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -332,7 +344,9 @@ export async function updateRoomSettings(
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to update room settings: ${response.status}`);
+      throw new Error(
+        errorData.error || `Failed to update room settings: ${response.status}`
+      );
     }
 
     const data = await response.json();
@@ -358,121 +372,4 @@ export function updateSettings(settings: Partial<RoomSettings>): void {
       settings,
     })
   );
-}
-
-/**
- * Start a new game (moderator only)
- */
-export async function startGame(name: string, roomKey: string): Promise<void> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/rooms/start-game`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, roomKey }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to start game: ${response.status}`);
-    }
-
-    await response.json();
-  } catch (error) {
-    console.error('Error starting game:', error);
-    throw error;
-  }
-}
-
-/**
- * Submit a guess for the current drawing
- */
-export async function submitGuess(
-  name: string,
-  roomKey: string,
-  guess: string
-): Promise<void> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/rooms/submit-guess`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, roomKey, guess }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to submit guess: ${response.status}`);
-    }
-
-    await response.json();
-  } catch (error) {
-    console.error('Error submitting guess:', error);
-    throw error;
-  }
-}
-
-/**
- * Update the current drawing (drawer only)
- */
-export async function updateDrawing(
-  name: string,
-  roomKey: string,
-  drawingData: string
-): Promise<void> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/rooms/update-drawing`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, roomKey, drawingData }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to update drawing: ${response.status}`);
-    }
-
-    await response.json();
-  } catch (error) {
-    console.error('Error updating drawing:', error);
-    throw error;
-  }
-}
-
-/**
- * Get the current game state
- */
-export async function getGameState(
-  roomKey: string,
-  name?: string
-): Promise<RoomData> {
-  try {
-    const url = new URL(`${API_BASE_URL}/rooms/game-state`);
-    url.searchParams.append('roomKey', roomKey);
-    if (name) {
-      url.searchParams.append('name', name);
-    }
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to get game state: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.gameState;
-  } catch (error) {
-    console.error('Error getting game state:', error);
-    throw error;
-  }
 }

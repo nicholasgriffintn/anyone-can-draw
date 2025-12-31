@@ -1,18 +1,17 @@
 import type {
-	DurableObjectNamespace,
-	ExportedHandler,
-	Fetcher,
-	Request as CfRequest,
-	Response as CfResponse,
+  ExportedHandler,
+  Request as CfRequest,
+  Response as CfResponse,
 } from '@cloudflare/workers-types';
+
 import { Room } from './room';
+import type { Env } from './types';
+import { createApiConfig } from './config';
 
-export interface Env {
-	ROOM: DurableObjectNamespace;
-	ASSETS: Fetcher;
-}
-
-async function handleRequest(request: CfRequest, env: Env): Promise<CfResponse> {
+async function handleRequest(
+  request: CfRequest,
+  env: Env
+): Promise<CfResponse> {
   const url = new URL(request.url);
 
   if (url.pathname.startsWith('/api/')) {
@@ -21,20 +20,33 @@ async function handleRequest(request: CfRequest, env: Env): Promise<CfResponse> 
 
   if (url.pathname === '/ws') {
     if (request.headers.get('Upgrade') !== 'websocket') {
-      return new Response('Expected WebSocket', { status: 400 }) as unknown as CfResponse;
+      return new Response('Expected WebSocket', {
+        status: 400,
+      }) as unknown as CfResponse;
+    }
+
+    if (!url.searchParams.has('room') || !url.searchParams.has('name')) {
+      return new Response('Missing room key or user name', {
+        status: 400,
+      }) as unknown as CfResponse;
     }
 
     const roomKey = url.searchParams.get('room');
     const userName = url.searchParams.get('name');
 
     if (!roomKey || !userName) {
-      return new Response('Missing room key or user name', { status: 400 }) as unknown as CfResponse;
+      return new Response('Missing room key or user name', {
+        status: 400,
+      }) as unknown as CfResponse;
     }
 
     const roomId = getRoomId(roomKey);
 
-    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
-    console.log('roomObject', roomObject);
+    if (!env.ROOM) {
+      return new Response('Durable Object namespace not found', {
+        status: 500,
+      }) as unknown as CfResponse;
+    }
 
     return env.ROOM.get(env.ROOM.idFromName(roomId)).fetch(request);
   }
@@ -42,7 +54,12 @@ async function handleRequest(request: CfRequest, env: Env): Promise<CfResponse> 
   return env.ASSETS.fetch(request);
 }
 
-async function handleApiRequest(url: URL, request: CfRequest, env: Env): Promise<CfResponse> {
+async function handleApiRequest(
+  url: URL,
+  request: CfRequest,
+  env: Env
+): Promise<CfResponse> {
+  const config = createApiConfig(env);
   const path = url.pathname.substring(5); // Remove '/api/'
 
   // Create a new room
@@ -57,13 +74,19 @@ async function handleApiRequest(url: URL, request: CfRequest, env: Env): Promise
       }) as unknown as CfResponse;
     }
 
-    const roomKey = generateRoomKey();
+    const roomKey = generateRoomKey(config.room.keyLength);
     const roomId = getRoomId(roomKey);
+
+    if (!env.ROOM) {
+      return new Response('Durable Object namespace not found', {
+        status: 500,
+      }) as unknown as CfResponse;
+    }
 
     const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
 
     const response = await roomObject.fetch(
-      new Request('https://dummy/initialize', {
+      new Request(`${config.api.dummyBaseUrl}/initialize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomKey, moderator: name }),
@@ -90,10 +113,16 @@ async function handleApiRequest(url: URL, request: CfRequest, env: Env): Promise
 
     const roomId = getRoomId(roomKey);
 
+    if (!env.ROOM) {
+      return new Response('Durable Object namespace not found', {
+        status: 500,
+      }) as unknown as CfResponse;
+    }
+
     const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
 
     const response = await roomObject.fetch(
-      new Request('https://dummy/join', {
+      new Request(`${config.api.dummyBaseUrl}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
@@ -104,35 +133,46 @@ async function handleApiRequest(url: URL, request: CfRequest, env: Env): Promise
   }
 
   if (path === 'rooms/settings' && request.method === 'GET') {
+    if (!url.searchParams.has('roomKey')) {
+      return new Response(JSON.stringify({ error: 'Room key is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      }) as unknown as CfResponse;
+    }
+
     const roomKey = url.searchParams.get('roomKey');
 
     if (!roomKey) {
-      return new Response(
-        JSON.stringify({ error: 'Room key is required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      ) as unknown as CfResponse;
+      return new Response(JSON.stringify({ error: 'Room key is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      }) as unknown as CfResponse;
     }
 
     const roomId = getRoomId(roomKey);
+
+    if (!env.ROOM) {
+      return new Response('Durable Object namespace not found', {
+        status: 500,
+      }) as unknown as CfResponse;
+    }
+
     const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
 
     return roomObject.fetch(
-      new Request('https://dummy/settings', {
+      new Request(`${config.api.dummyBaseUrl}/settings`, {
         method: 'GET',
       }) as unknown as CfRequest
     );
   }
 
   if (path === 'rooms/settings' && request.method === 'PUT') {
-    const body = await request.json<{ 
-      name?: string; 
-      roomKey?: string; 
-      settings?: Record<string, unknown> 
+    const body = await request.json<{
+      name?: string;
+      roomKey?: string;
+      settings?: Record<string, unknown>;
     }>();
-    
+
     const name = body?.name;
     const roomKey = body?.roomKey;
     const settings = body?.settings;
@@ -148,126 +188,20 @@ async function handleApiRequest(url: URL, request: CfRequest, env: Env): Promise
     }
 
     const roomId = getRoomId(roomKey);
+
+    if (!env.ROOM) {
+      return new Response('Durable Object namespace not found', {
+        status: 500,
+      }) as unknown as CfResponse;
+    }
+
     const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
 
     return roomObject.fetch(
-      new Request('https://dummy/settings', {
+      new Request(`${config.api.dummyBaseUrl}/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, settings }),
-      }) as unknown as CfRequest
-    );
-  }
-
-  // Game-specific endpoints
-  if (path === 'rooms/start-game' && request.method === 'POST') {
-    const body = await request.json<{ name?: string; roomKey?: string }>();
-    const name = body?.name;
-    const roomKey = body?.roomKey;
-
-    if (!name || !roomKey) {
-      return new Response(
-        JSON.stringify({ error: 'Name and room key are required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      ) as unknown as CfResponse;
-    }
-
-    const roomId = getRoomId(roomKey);
-    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
-
-    return roomObject.fetch(
-      new Request('https://dummy/start-game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      }) as unknown as CfRequest
-    );
-  }
-
-  if (path === 'rooms/submit-guess' && request.method === 'POST') {
-    const body = await request.json<{ name?: string; roomKey?: string; guess?: string }>();
-    const name = body?.name;
-    const roomKey = body?.roomKey;
-    const guess = body?.guess;
-
-    if (!name || !roomKey || !guess) {
-      return new Response(
-        JSON.stringify({ error: 'Name, room key, and guess are required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      ) as unknown as CfResponse;
-    }
-
-    const roomId = getRoomId(roomKey);
-    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
-
-    return roomObject.fetch(
-      new Request('https://dummy/submit-guess', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, guess }),
-      }) as unknown as CfRequest
-    );
-  }
-
-  if (path === 'rooms/update-drawing' && request.method === 'POST') {
-    const body = await request.json<{ name?: string; roomKey?: string; drawingData?: string }>();
-    const name = body?.name;
-    const roomKey = body?.roomKey;
-    const drawingData = body?.drawingData;
-
-    if (!name || !roomKey || !drawingData) {
-      return new Response(
-        JSON.stringify({ error: 'Name, room key, and drawing data are required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      ) as unknown as CfResponse;
-    }
-
-    const roomId = getRoomId(roomKey);
-    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
-
-    return roomObject.fetch(
-      new Request('https://dummy/update-drawing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, drawingData }),
-      }) as unknown as CfRequest
-    );
-  }
-
-  if (path === 'rooms/game-state' && request.method === 'GET') {
-    const roomKey = url.searchParams.get('roomKey');
-    const name = url.searchParams.get('name');
-
-    if (!roomKey) {
-      return new Response(
-        JSON.stringify({ error: 'Room key is required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      ) as unknown as CfResponse;
-    }
-
-    const roomId = getRoomId(roomKey);
-    const roomObject = env.ROOM.get(env.ROOM.idFromName(roomId));
-
-    const newUrl = new URL('https://dummy/game-state');
-    if (name) {
-      newUrl.searchParams.set('name', name);
-    }
-
-    return roomObject.fetch(
-      new Request(newUrl, {
-        method: 'GET',
       }) as unknown as CfRequest
     );
   }
@@ -278,8 +212,8 @@ async function handleApiRequest(url: URL, request: CfRequest, env: Env): Promise
   }) as unknown as CfResponse;
 }
 
-function generateRoomKey() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+function generateRoomKey(keyLength: number = 6) {
+  return Math.random().toString(36).substring(2, 2 + keyLength).toUpperCase();
 }
 
 function getRoomId(roomKey: string) {
@@ -287,9 +221,9 @@ function getRoomId(roomKey: string) {
 }
 
 export default {
-	async fetch(request: CfRequest, env: Env): Promise<CfResponse> {
-		return handleRequest(request, env);
-	},
+  async fetch(request: CfRequest, env: Env): Promise<CfResponse> {
+    return handleRequest(request, env);
+  },
 } satisfies ExportedHandler<Env>;
 
 export { Room };

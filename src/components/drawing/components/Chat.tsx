@@ -20,7 +20,7 @@ export function Chat({
 
   return (
     <div className="h-full flex flex-col p-4">
-      <h3 className="font-bold mb-4 text-slate-800 text-base">
+      <h3 className="font-bold mb-4 text-white text-base">
         Game Chat
       </h3>
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -30,14 +30,14 @@ export function Chat({
               key={`${guess.playerId}-${index}`}
               className={`text-sm p-3 rounded-lg transition-all animate-slide-in ${
                 guess.correct
-                  ? "bg-emerald-50 border-2 border-emerald-300"
-                  : "bg-slate-50 border border-slate-200"
+                  ? "bg-emerald-900/30 border-2 border-emerald-600"
+                  : "bg-slate-700/50 border border-slate-600"
               }`}
             >
-              <span className={`font-semibold ${guess.correct ? 'text-emerald-700' : 'text-slate-800'}`}>
+              <span className={`font-semibold ${guess.correct ? 'text-emerald-400' : 'text-white'}`}>
                 {guess.playerName}:
               </span>{" "}
-              <span className={guess.correct ? 'text-emerald-600' : 'text-slate-600'}>
+              <span className={guess.correct ? 'text-emerald-300' : 'text-slate-300'}>
                 {guess.correct && !isDrawer
                   ? `You guessed correctly with ${guess.guess}!`
                   : guess.guess}
@@ -54,7 +54,7 @@ export function Chat({
               type="text"
               name="guess"
               placeholder="Enter your guess..."
-              className="flex-1 rounded-lg border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+              className="flex-1 rounded-lg border-2 border-slate-600 bg-slate-700 text-white px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-900/50 transition-all placeholder:text-slate-400"
               autoComplete="off"
             />
             <button

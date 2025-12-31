@@ -12,10 +12,10 @@ export function GenerateDrawing({
   return (
     <div className="p-4">
       <div className="space-y-2 mb-4">
-        <h3 className="text-base font-bold text-slate-800">
+        <h3 className="text-base font-bold text-white">
           Generate AI Art
         </h3>
-        <p className="text-xs text-slate-600 leading-relaxed">
+        <p className="text-xs text-slate-400 leading-relaxed">
           Draw anything and get an AI-generated painting based on your sketch.
         </p>
       </div>

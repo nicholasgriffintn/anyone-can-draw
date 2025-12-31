@@ -6,7 +6,7 @@ interface ToolPickerProps {
 export function ToolPicker({ isFillMode, setIsFillMode }: ToolPickerProps) {
   const activeClasses =
     "bg-purple-600 text-white border-purple-600 shadow-md";
-  const inactiveClasses = "bg-white text-slate-700 border-slate-200 hover:border-purple-300 hover:bg-purple-50";
+  const inactiveClasses = "bg-slate-700 text-slate-300 border-slate-600 hover:border-purple-500 hover:bg-slate-600";
 
   return (
     <div className="flex gap-2">

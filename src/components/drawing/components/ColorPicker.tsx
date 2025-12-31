@@ -8,17 +8,17 @@ interface ColorPickerProps {
 export function ColorPicker({ currentColor, setCurrentColor }: ColorPickerProps) {
   return (
     <>
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 border border-purple-200">
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-700/50 border border-slate-600">
         <input
           type="color"
           value={currentColor}
           onChange={(event) => setCurrentColor(event.target.value)}
-          className="w-12 h-12 rounded-lg cursor-pointer border-2 border-white shadow-md hover:shadow-lg transition-all"
+          className="w-12 h-12 rounded-lg cursor-pointer border-2 border-slate-500 shadow-md hover:shadow-lg transition-all"
           title="Custom Color"
         />
         <div>
-          <span className="text-sm font-medium text-slate-700 block">Custom Color</span>
-          <span className="text-xs text-slate-500">{currentColor}</span>
+          <span className="text-sm font-medium text-slate-300 block">Custom Color</span>
+          <span className="text-xs text-slate-400">{currentColor}</span>
         </div>
       </div>
       <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">

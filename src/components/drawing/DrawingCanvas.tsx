@@ -171,7 +171,7 @@ export function DrawingCanvas({
       <button
         type="button"
         onClick={clearCanvas}
-        className="w-full px-4 py-2.5 rounded-lg bg-red-50 border-2 border-red-300 text-sm font-semibold text-red-700 hover:bg-red-100 hover:border-red-400 transition-all"
+        className="w-full px-4 py-2.5 rounded-lg bg-red-900/30 border-2 border-red-700 text-sm font-semibold text-red-400 hover:bg-red-900/50 hover:border-red-600 transition-all"
       >
         <span className="flex items-center justify-center gap-2">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,19 +186,19 @@ export function DrawingCanvas({
   return (
     <div className="h-full flex flex-col">
       {apiResult && (
-        <div className="flex-shrink-0 px-4 py-3 border-b-2 border-purple-200 bg-purple-50 flex items-center justify-between animate-fade-in">
-          <span className="text-sm font-bold text-slate-800">AI Result</span>
+        <div className="flex-shrink-0 px-4 py-3 border-b-2 border-slate-700 bg-slate-800 flex items-center justify-between animate-fade-in">
+          <span className="text-sm font-bold text-white">AI Result</span>
           <button
             type="button"
             onClick={() => setApiResult(null)}
-            className="px-4 py-2 rounded-lg border-2 border-purple-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-all"
+            className="px-4 py-2 rounded-lg border-2 border-purple-600 bg-purple-700 text-sm font-medium text-white hover:bg-purple-600 hover:border-purple-500 transition-all"
           >
             New Drawing
           </button>
         </div>
       )}
 
-      <div className="lg:hidden flex-shrink-0 px-4 py-2.5 border-b-2 border-purple-100 bg-white flex gap-2">
+      <div className="lg:hidden flex-shrink-0 px-4 py-2.5 border-b-2 border-slate-700 bg-slate-800 flex gap-2">
         {displaySidebar && (
           <button
             type="button"
@@ -206,7 +206,7 @@ export function DrawingCanvas({
               setShowLeftPanel(!showLeftPanel);
               setShowRightPanel(false);
             }}
-            className="flex-1 px-4 py-2 rounded-lg border-2 border-purple-200 text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all"
+            className="flex-1 px-4 py-2 rounded-lg border-2 border-slate-600 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:border-slate-500 transition-all"
           >
             {showLeftPanel ? "Hide Tools" : "Show Tools"}
           </button>
@@ -217,7 +217,7 @@ export function DrawingCanvas({
             setShowRightPanel(!showRightPanel);
             setShowLeftPanel(false);
           }}
-          className="flex-1 px-4 py-2 rounded-lg border-2 border-purple-200 text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all"
+          className="flex-1 px-4 py-2 rounded-lg border-2 border-slate-600 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:border-slate-500 transition-all"
         >
           {showRightPanel ? "Hide Panel" : "Show Panel"}
         </button>
@@ -226,13 +226,13 @@ export function DrawingCanvas({
       <div className="flex-1 flex overflow-hidden relative">
         {displaySidebar && (
           <>
-            <div className="hidden lg:block w-64 flex-shrink-0 border-r-2 border-purple-100 bg-white overflow-y-auto shadow-sm">
+            <div className="hidden lg:block w-64 flex-shrink-0 border-r-2 border-slate-700 bg-slate-800 overflow-y-auto shadow-sm">
               <div className="p-4">
                 <DrawingTools />
               </div>
             </div>
             {showLeftPanel && (
-              <div className="lg:hidden absolute inset-y-0 left-0 w-64 z-10 border-r-2 border-purple-200 bg-white overflow-y-auto shadow-2xl animate-slide-in">
+              <div className="lg:hidden absolute inset-y-0 left-0 w-64 z-10 border-r-2 border-slate-700 bg-slate-800 overflow-y-auto shadow-2xl animate-slide-in">
                 <div className="p-4">
                   <DrawingTools />
                 </div>
@@ -258,9 +258,9 @@ export function DrawingCanvas({
           )}
         </div>
 
-        <div className="hidden lg:flex w-80 flex-shrink-0 border-l-2 border-purple-100 bg-white flex-col overflow-hidden shadow-sm">
+        <div className="hidden lg:flex w-80 flex-shrink-0 border-l-2 border-slate-700 bg-slate-800 flex-col overflow-hidden shadow-sm">
           {!apiResult && !gameState.isActive && (
-            <div className="flex-shrink-0 border-b-2 border-purple-100">
+            <div className="flex-shrink-0 border-b-2 border-slate-700">
               <GenerateDrawing
                 handleSubmit={handleSubmit}
                 loading={loading}
@@ -269,7 +269,7 @@ export function DrawingCanvas({
             </div>
           )}
 
-          <div className="flex-shrink-0 border-b-2 border-purple-100">
+          <div className="flex-shrink-0 border-b-2 border-slate-700">
             <GameStatus
               users={users}
               gameState={gameState}
@@ -298,9 +298,9 @@ export function DrawingCanvas({
         </div>
 
         {showRightPanel && (
-          <div className="lg:hidden absolute inset-y-0 right-0 w-80 z-10 border-l-2 border-purple-200 bg-white flex flex-col overflow-hidden shadow-2xl animate-slide-in">
+          <div className="lg:hidden absolute inset-y-0 right-0 w-80 z-10 border-l-2 border-slate-700 bg-slate-800 flex flex-col overflow-hidden shadow-2xl animate-slide-in">
             {!apiResult && !gameState.isActive && (
-              <div className="flex-shrink-0 border-b-2 border-purple-100">
+              <div className="flex-shrink-0 border-b-2 border-slate-700">
                 <GenerateDrawing
                   handleSubmit={handleSubmit}
                   loading={loading}
@@ -309,7 +309,7 @@ export function DrawingCanvas({
               </div>
             )}
 
-            <div className="flex-shrink-0 border-b-2 border-purple-100">
+            <div className="flex-shrink-0 border-b-2 border-slate-700">
               <GameStatus
                 users={users}
                 gameState={gameState}

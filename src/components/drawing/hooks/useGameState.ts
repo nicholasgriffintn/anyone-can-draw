@@ -37,6 +37,16 @@ export function useGameState(
   const [isConnected, setIsConnected] = useState(false);
   const [availableGames, setAvailableGames] = useState<GameListItem[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
+  const clearCanvasRef = useRef(clearCanvas);
+  const playerNameRef = useRef(playerName);
+
+  useEffect(() => {
+    clearCanvasRef.current = clearCanvas;
+  }, [clearCanvas]);
+
+  useEffect(() => {
+    playerNameRef.current = playerName;
+  }, [playerName]);
 
   const socketUrl = useMemo(() => {
     return resolveWebSocketUrl(config.multiplayer.wsBaseUrl);
@@ -56,7 +66,7 @@ export function useGameState(
             action: 'join',
             gameId: initialGameId,
             playerId,
-            playerName,
+            playerName: playerNameRef.current,
           })
         );
       }
@@ -111,7 +121,7 @@ export function useGameState(
             ws.send(JSON.stringify({ action: 'getGames' }));
             break;
           case 'gameStarted':
-            clearCanvas?.();
+            clearCanvasRef.current?.();
             break;
           case 'gameEnded':
             setGameState(data.gameState);
@@ -153,7 +163,7 @@ export function useGameState(
         ws.close();
       }
     };
-  }, [socketUrl, playerId, playerName, initialGameId, clearCanvas]);
+  }, [socketUrl, playerId, initialGameId]);
 
   const createGame = useCallback(
     async (gameName: string) => {

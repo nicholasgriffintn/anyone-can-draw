@@ -16,10 +16,7 @@ export class Multiplayer {
 	}
 
 	async fetch(request: Request) {
-		const url = new URL(request.url);
-		const pathSegment = url.pathname.split("/")[1];
-		const gameType =
-			!pathSegment || pathSegment === "ws" ? "anyone-can-draw" : pathSegment;
+		const gameType = "anyone-can-draw";
 
 		if (!this.game) {
 			switch (gameType) {

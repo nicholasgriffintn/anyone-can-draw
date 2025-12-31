@@ -1,5 +1,6 @@
-import { useState } from "react";
-import type { GameState } from "../types";
+import { useState, useEffect, useRef } from 'react';
+import type { GameState } from '../types';
+import { playCorrectGuessSound } from '../../../lib/sounds';
 
 export function Chat({
   gameState,
@@ -12,21 +13,36 @@ export function Chat({
   isDrawer: boolean;
   playerId: string;
 }) {
-  const [guessInput, setGuessInput] = useState("");
+  const [guessInput, setGuessInput] = useState('');
+  const previousGuessCountRef = useRef(0);
+  const previousRoundRef = useRef(gameState.roundNumber);
+
+  useEffect(() => {
+    if (gameState.roundNumber !== previousRoundRef.current) {
+      previousGuessCountRef.current = 0;
+      previousRoundRef.current = gameState.roundNumber;
+    }
+
+    const correctGuesses = gameState.guesses.filter((g) => g.correct);
+    const currentCount = correctGuesses.length;
+
+    if (currentCount > previousGuessCountRef.current) {
+      playCorrectGuessSound();
+      previousGuessCountRef.current = currentCount;
+    }
+  }, [gameState.guesses, gameState.roundNumber]);
 
   const handleGuess = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const guess = guessInput.trim();
     if (!guess) return;
-    setGuessInput("");
+    setGuessInput('');
     await onGuess?.(guess);
   };
 
   return (
     <div className="h-full flex flex-col p-4">
-      <h3 className="font-bold mb-4 text-white text-base">
-        Game Chat
-      </h3>
+      <h3 className="font-bold mb-4 text-white text-base">Game Chat</h3>
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 space-y-2 overflow-y-auto mb-3 pr-2">
           {gameState.aiThinking && (
@@ -41,30 +57,40 @@ export function Chat({
               (g) => g.playerId === playerId && g.correct
             );
             const isOwnGuess = guess.playerId === playerId;
-            const shouldHideAnswer = guess.correct && !isDrawer && !currentPlayerHasGuessedCorrectly && !isOwnGuess;
+            const shouldHideAnswer =
+              guess.correct &&
+              !isDrawer &&
+              !currentPlayerHasGuessedCorrectly &&
+              !isOwnGuess;
 
             return (
               <div
                 key={`${guess.playerId}-${index}`}
                 className={`text-sm p-3 rounded-lg transition-all animate-slide-in ${
                   guess.correct
-                    ? "bg-emerald-900/30 border-2 border-emerald-600"
-                    : "bg-slate-700/50 border border-slate-600"
+                    ? 'bg-emerald-900/30 border-2 border-emerald-600'
+                    : 'bg-slate-700/50 border border-slate-600'
                 }`}
               >
-                <span className={`font-semibold ${guess.correct ? 'text-emerald-400' : 'text-white'}`}>
+                <span
+                  className={`font-semibold ${
+                    guess.correct ? 'text-emerald-400' : 'text-white'
+                  }`}
+                >
                   {guess.playerName}:
-                </span>{" "}
-                <span className={guess.correct ? 'text-emerald-300' : 'text-slate-300'}>
+                </span>{' '}
+                <span
+                  className={
+                    guess.correct ? 'text-emerald-300' : 'text-slate-300'
+                  }
+                >
                   {shouldHideAnswer
-                    ? "guessed correctly!"
+                    ? 'guessed correctly!'
                     : isOwnGuess && guess.correct
-                      ? `${guess.guess}!`
-                      : guess.guess}
+                    ? `${guess.guess}!`
+                    : guess.guess}
                 </span>
-                {guess.correct && (
-                  <span className="ml-2">✓</span>
-                )}
+                {guess.correct && <span className="ml-2">✓</span>}
               </div>
             );
           })}

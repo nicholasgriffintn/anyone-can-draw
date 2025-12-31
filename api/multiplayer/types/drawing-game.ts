@@ -20,6 +20,7 @@ export interface DrawingGameState extends BaseGameState {
 	nextRoundStartTime?: number;
 	roundNumber?: number;
 	aiThinking?: boolean;
+	difficulty?: "easy" | "medium" | "hard" | "all";
 }
 
 export interface DrawingGameConfig extends BaseGameConfig {

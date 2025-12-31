@@ -1,5 +1,5 @@
 import { BaseMultiplayerGame } from "./base";
-import { GAME_WORDS } from "../constants";
+import { WORDS_BY_DIFFICULTY } from "../constants";
 import { onAIGuessDrawing } from "../utils/ai-utils";
 import type { Env } from "../types/app";
 import type {
@@ -54,6 +54,7 @@ export class DrawingGame extends BaseMultiplayerGame {
 			drawingData: undefined,
 			drawerRotation: [],
 			roundNumber: 0,
+			difficulty: "all",
 		};
 
 		if (this.config.aiEnabled) {
@@ -105,8 +106,9 @@ export class DrawingGame extends BaseMultiplayerGame {
 		const drawerIndex = (game.gameState.roundNumber || 0) % game.gameState.drawerRotation.length;
 		const nextDrawer = game.gameState.drawerRotation[drawerIndex];
 
-		const randomWord =
-			GAME_WORDS[Math.floor(Math.random() * GAME_WORDS.length)];
+		const difficulty = game.gameState.difficulty || "all";
+		const wordList = WORDS_BY_DIFFICULTY[difficulty];
+		const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
 
 		game.gameState = {
 			...game.gameState,
@@ -170,6 +172,9 @@ export class DrawingGame extends BaseMultiplayerGame {
 			case "updateDrawing":
 				await this.handleDrawingUpdate(data);
 				break;
+			case "setDifficulty":
+				await this.handleSetDifficulty(data, game);
+				break;
 		}
 	}
 
@@ -190,6 +195,17 @@ export class DrawingGame extends BaseMultiplayerGame {
 			};
 			await this.saveGames();
 		}
+	}
+
+	private async handleSetDifficulty(
+		{ gameId, difficulty }: { gameId: string; difficulty: "easy" | "medium" | "hard" | "all" },
+		game: DrawingRuntimeGameData
+	) {
+		if (!game.gameState.isLobby || game.gameState.isActive) return;
+
+		game.gameState.difficulty = difficulty;
+		await this.saveGames();
+		await this.broadcastGameState(gameId);
 	}
 
 	private async handleGuess({
@@ -268,17 +284,16 @@ export class DrawingGame extends BaseMultiplayerGame {
 		game: DrawingRuntimeGameData,
 		playerId: string,
 	) {
-		const timeBasedMultiplier =
-			game.gameState.timeRemaining / this.config.gameDuration;
+		const correctGuessesBeforeThis = game.gameState.guesses.filter(
+			(g) => g.correct && g.playerId !== playerId
+		).length;
+
+		const pointsForPosition = [5, 3, 1];
+		const pointsEarned = pointsForPosition[correctGuessesBeforeThis] || 0;
 
 		const guesser = game.users.get(playerId);
-		if (guesser) {
-			guesser.score =
-				Math.round(
-					(guesser.score +
-						this.config.correctGuesserScore * timeBasedMultiplier) *
-						10,
-				) / 10;
+		if (guesser && pointsEarned > 0) {
+			guesser.score = Math.round((guesser.score + pointsEarned) * 10) / 10;
 		}
 
 		const nonDrawerPlayers = Array.from(game.users.entries()).filter(
@@ -290,14 +305,9 @@ export class DrawingGame extends BaseMultiplayerGame {
 			? game.users.get(game.gameState.currentDrawer)
 			: undefined;
 
-		if (drawer) {
-			drawer.score =
-				Math.round(
-					(drawer.score +
-						(this.config.correctDrawerScore * timeBasedMultiplier) /
-							nonDrawerPlayers.length) *
-						10,
-				) / 10;
+		if (drawer && pointsEarned > 0) {
+			const drawerBonus = pointsEarned * 0.5;
+			drawer.score = Math.round((drawer.score + drawerBonus) * 10) / 10;
 		}
 
 		const correctGuesses = new Set(
@@ -311,9 +321,11 @@ export class DrawingGame extends BaseMultiplayerGame {
 		if (allPlayersGuessedCorrectly) {
 			await this.handleRoundEnd(game, true);
 		} else {
+			const positionText = correctGuessesBeforeThis === 0 ? "1st" : correctGuessesBeforeThis === 1 ? "2nd" : correctGuessesBeforeThis === 2 ? "3rd" : "";
+			const pointsText = pointsEarned > 0 ? ` (+${pointsEarned} pts)` : "";
 			game.gameState.statusMessage = {
 				type: "success",
-				message: `${game.users.get(playerId)?.name || "Unknown Player"} guessed correctly!`,
+				message: `${game.users.get(playerId)?.name || "Unknown Player"} guessed correctly! ${positionText}${pointsText}`,
 			};
 		}
 	}

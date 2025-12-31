@@ -1,124 +1,121 @@
-export const GAME_WORDS = [
-	// Food & Drinks
-	"grape",
-	"coconut",
-	"strawberry",
-	"pineapple",
-	"watermelon",
+const EASY_WORDS = [
+	"car",
+	"bus",
+	"cat",
+	"dog",
+	"sun",
+	"tree",
+	"fish",
+	"star",
+	"moon",
 	"orange",
-	"noodles",
-	"rice",
-	"hamburger",
-	"soup",
-	"ketchup",
-	"waffles",
+	"grape",
 	"lemon",
-	"cupcake",
-	"crust",
+	"rice",
+	"soup",
+	"taxi",
+	"truck",
+	"lion",
+	"tiger",
+	"frog",
+	"wasp",
+	"rainbow",
+	"summer",
+	"fog",
+	"school",
+	"bathroom",
+	"bedroom",
+	"walk",
+	"drink",
+	"sing",
+	"bubble",
+	"monday",
+];
 
-	// Animals & Nature
+const MEDIUM_WORDS = [
+	"bicycle",
+	"train",
+	"ferry",
+	"helicopter",
+	"motorcycle",
+	"lawnmower",
+	"hamburger",
+	"noodles",
+	"waffles",
+	"cupcake",
+	"ketchup",
+	"strawberry",
+	"watermelon",
+	"pineapple",
+	"coconut",
 	"dolphin",
 	"eagle",
-	"frog",
 	"giraffe",
 	"koala",
-	"lion",
-	"meerkat",
 	"panda",
+	"beehive",
+	"cinema",
+	"hospital",
+	"factory",
+	"library",
+	"airport",
+	"restaurant",
+	"supermarket",
+	"igloo",
+	"fight",
+	"dancing",
+	"fitness",
+	"boxing",
+	"toothpaste",
+	"headphones",
+	"battery",
+	"whistle",
+	"fireworks",
+	"snowball",
+	"bouquet",
+	"sandcastle",
+	"sunscreen",
+];
+
+const HARD_WORDS = [
+	"aircraft",
+	"meerkat",
 	"platypus",
 	"salamander",
 	"scorpion",
 	"t-rex",
-	"tiger",
-	"wasp",
-	"beehive",
-	"rainbow",
-	"summer",
-	"fog",
-
-	// Places & Structures
-	"cinema",
-	"hospital",
-	"factory",
-	"school",
-	"supermarket",
-	"bathroom",
-	"library",
-	"bedroom",
-	"airport",
-	"restaurant",
-	"igloo",
-
-	// Transportation
-	"aircraft",
-	"train",
-	"ferry",
-	"bicycle",
-	"bus",
-	"car",
-	"helicopter",
-	"motorcycle",
-	"taxi",
-	"truck",
-	"lawnmower",
-
-	// Actions & Activities
+	"crust",
 	"quarrel",
-	"fight",
 	"embrace",
 	"smoking",
-	"walk",
-	"dancing",
-	"fitness",
-	"drink",
-	"sing",
-	"boxing",
-
-	// Objects & Items
 	"chandelier",
-	"toothpaste",
 	"boardgame",
 	"wreath",
-	"whistle",
-	"headphones",
 	"whisk",
-	"battery",
-
-	// Natural Phenomena & Effects
 	"eclipse",
-	"fireworks",
-	"snowball",
 	"bruise",
-
-	// Miscellaneous
-	"bubble",
-	"bouquet",
-
-	// Events & Activities
 	"olympics",
 	"applause",
 	"recycle",
-
-	// Time & Concepts
-	"monday",
 	"century",
-
-	// Nature & Weather
 	"black hole",
 	"blizzard",
 	"sunburn",
 	"swamp",
-	"sandcastle",
-
-	// Places & Landmarks
 	"atlantis",
-
-	// Objects & Items
 	"dictionary",
 	"lace",
-	"sunscreen",
 	"vanilla",
 ];
+
+export const GAME_WORDS = [...EASY_WORDS, ...MEDIUM_WORDS, ...HARD_WORDS];
+
+export const WORDS_BY_DIFFICULTY = {
+	easy: EASY_WORDS,
+	medium: MEDIUM_WORDS,
+	hard: HARD_WORDS,
+	all: GAME_WORDS,
+};
 
 export const AI_NAMES = [
 	"DoodleBot 🤖",

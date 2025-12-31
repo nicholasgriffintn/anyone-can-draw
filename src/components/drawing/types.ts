@@ -52,6 +52,7 @@ export interface GameState {
   nextRoundStartTime?: number;
   roundNumber?: number;
   aiThinking?: boolean;
+  difficulty?: "easy" | "medium" | "hard" | "all";
 }
 
 export interface GameListItem {

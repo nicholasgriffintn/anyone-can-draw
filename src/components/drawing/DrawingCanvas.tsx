@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { DrawingResponse } from "./types";
 import { ColorPicker } from "./components/ColorPicker";
 import { LineWidthPicker } from "./components/LineWidthPicker";
-import { ToolPicker } from "./components/ToolPicker";
+import { ToolPicker, type ToolMode } from "./components/ToolPicker";
 import { Header } from "./components/Header";
 import { Result } from "./components/Result";
 import { Canvas } from "./components/Canvas";
@@ -32,7 +32,7 @@ export function DrawingCanvas({
   const [apiResult, setApiResult] = useState<DrawingResponse | null>(null);
   const [currentColor, setCurrentColor] = useState("#030712");
   const [lineWidth, setLineWidth] = useState(3);
-  const [toolMode, setToolMode] = useState<'brush' | 'fill' | 'eraser'>('brush');
+  const [toolMode, setToolMode] = useState<ToolMode>('brush');
   const [history, setHistory] = useState<ImageData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
@@ -146,6 +146,7 @@ export function DrawingCanvas({
     leaveGame,
     updateDrawing,
     submitGuess,
+    setDifficulty,
   } = useGameState(gameId ?? null, playerId, playerName, clearCanvas);
 
   const handleDrawingComplete = async () => {
@@ -283,6 +284,7 @@ export function DrawingCanvas({
               onStartGame={startGame}
               onEndGame={endGame}
               onLeaveGame={leaveGame}
+              onSetDifficulty={setDifficulty}
               isConnected={isConnected}
               isDrawer={isDrawer}
               playerName={playerName}
@@ -324,6 +326,7 @@ export function DrawingCanvas({
                 onStartGame={startGame}
                 onEndGame={endGame}
                 onLeaveGame={leaveGame}
+                onSetDifficulty={setDifficulty}
                 isConnected={isConnected}
                 isDrawer={isDrawer}
                 playerName={playerName}

@@ -312,6 +312,23 @@ export function useGameState(
     [gameState.gameId, playerId]
   );
 
+  const setDifficulty = useCallback(
+    async (difficulty: "easy" | "medium" | "hard" | "all") => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      wsRef.current.send(
+        JSON.stringify({
+          action: 'setDifficulty',
+          gameId: gameState.gameId,
+          difficulty,
+        })
+      );
+    },
+    [gameState.gameId]
+  );
+
   return {
     isConnected,
     gameState,
@@ -324,5 +341,6 @@ export function useGameState(
     leaveGame,
     updateDrawing,
     submitGuess,
+    setDifficulty,
   };
 }

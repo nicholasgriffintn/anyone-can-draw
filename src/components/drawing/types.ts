@@ -42,6 +42,9 @@ export interface GameState {
     message: string;
   };
   drawingData?: string;
+  drawerRotation?: string[];
+  nextRoundStartTime?: number;
+  roundNumber?: number;
 }
 
 export interface GameListItem {

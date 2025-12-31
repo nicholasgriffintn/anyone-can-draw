@@ -51,6 +51,8 @@ export class DrawingGame extends BaseMultiplayerGame {
 			hasWon: false,
 			currentDrawer: undefined,
 			drawingData: undefined,
+			drawerRotation: [],
+			roundNumber: 0,
 		};
 
 		if (this.config.aiEnabled) {
@@ -90,19 +92,34 @@ export class DrawingGame extends BaseMultiplayerGame {
 			return;
 		}
 
+		const currentPlayers = Array.from(game.users.keys()).filter(
+			(id) => id !== DrawingGame.AI_PLAYER_ID
+		);
+
+		if (!game.gameState.drawerRotation || game.gameState.drawerRotation.length === 0) {
+			game.gameState.drawerRotation = [...currentPlayers];
+			game.gameState.roundNumber = 0;
+		}
+
+		const drawerIndex = (game.gameState.roundNumber || 0) % game.gameState.drawerRotation.length;
+		const nextDrawer = game.gameState.drawerRotation[drawerIndex];
+
 		const randomWord =
 			GAME_WORDS[Math.floor(Math.random() * GAME_WORDS.length)];
 
 		game.gameState = {
+			...game.gameState,
 			isActive: true,
 			isLobby: false,
 			targetWord: randomWord,
 			timeRemaining: this.config.gameDuration,
 			guesses: [],
 			hasWon: false,
-			currentDrawer: playerId,
+			currentDrawer: nextDrawer,
 			endTime: Date.now() + this.config.gameDuration * 1000,
 			drawingData: undefined,
+			roundNumber: (game.gameState.roundNumber || 0) + 1,
+			nextRoundStartTime: undefined,
 		};
 
 		this.startGameTimer(gameId);
@@ -306,21 +323,24 @@ export class DrawingGame extends BaseMultiplayerGame {
 
 	private async handleRoundEnd(game: DrawingRuntimeGameData, success: boolean) {
 		const oldWord = game.gameState.targetWord;
+		const nextRoundDelay = 5000;
+		const nextRoundStartTime = Date.now() + nextRoundDelay;
 
 		game.gameState = {
 			...game.gameState,
 			isActive: false,
-			isLobby: true,
+			isLobby: false,
 			targetWord: "",
 			timeRemaining: this.config.gameDuration,
 			currentDrawer: undefined,
 			endTime: undefined,
 			hasWon: success,
+			nextRoundStartTime,
 			statusMessage: {
 				type: success ? "success" : "failure",
 				message: success
-					? `Everyone guessed correctly! The word was "${oldWord}"`
-					: `Time's up! The word was "${oldWord}"`,
+					? `Everyone guessed correctly! The word was "${oldWord}". Next round starting...`
+					: `Time's up! The word was "${oldWord}". Next round starting...`,
 			},
 		};
 
@@ -331,5 +351,15 @@ export class DrawingGame extends BaseMultiplayerGame {
 
 		await this.saveGames();
 		await this.broadcastGameState(game.id);
+
+		setTimeout(async () => {
+			const currentGame = this.games.get(game.id) as DrawingRuntimeGameData;
+			if (currentGame && !currentGame.gameState.isActive) {
+				await this.handleGameStart({
+					gameId: game.id,
+					playerId: currentGame.gameState.drawerRotation?.[0] || "",
+				});
+			}
+		}, nextRoundDelay);
 	}
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import type { GameListItem, GameState, User } from "../types";
 
@@ -32,6 +32,20 @@ export function GameStatus({
   onPlayerNameChange,
 }: GameStatusProps) {
   const [newGameName, setNewGameName] = useState("");
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (gameState.nextRoundStartTime) {
+      const interval = setInterval(() => {
+        const remaining = Math.ceil((gameState.nextRoundStartTime! - Date.now()) / 1000);
+        setCountdown(remaining > 0 ? remaining : 0);
+      }, 100);
+
+      return () => clearInterval(interval);
+    } else {
+      setCountdown(null);
+    }
+  }, [gameState.nextRoundStartTime]);
 
   const getStatusBackground = (timeRemaining: number, hasWon: boolean) => {
     if (hasWon) return "bg-emerald-900/30 border-emerald-600";
@@ -140,6 +154,83 @@ export function GameStatus({
 
   const aiPlayer = users.find((user) => user.id === "ai-player");
 
+  if (!gameState.isActive && !gameState.isLobby && countdown !== null) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="space-y-3 text-center">
+          <h3 className="text-lg font-medium text-white">
+            Round {gameState.roundNumber || 1} Complete!
+          </h3>
+          {gameState.statusMessage && (
+            <div
+              className={`text-sm ${
+                gameState.statusMessage.type === "success"
+                  ? "text-emerald-400"
+                  : "text-amber-400"
+              }`}
+            >
+              {gameState.statusMessage.message}
+            </div>
+          )}
+          <div className="py-6">
+            <div className="text-6xl font-bold text-purple-400 animate-pulse">
+              {countdown}
+            </div>
+            <div className="text-sm text-slate-400 mt-2">
+              Next round starting...
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h4 className="font-medium text-slate-300">Scoreboard</h4>
+          {users
+            .filter((user) => user.id !== "ai-player")
+            .sort((a, b) => b.score - a.score)
+            .map((user, index) => {
+              const getMedalEmoji = () => {
+                if (index === 0 && user.score > 0) return "🥇";
+                if (index === 1 && user.score > 0) return "🥈";
+                if (index === 2 && user.score > 0) return "🥉";
+                return null;
+              };
+
+              const getBgColor = () => {
+                if (index === 0 && user.score > 0) return "bg-yellow-900/30 border-2 border-yellow-600";
+                if (index === 1 && user.score > 0) return "bg-slate-700/50 border-2 border-slate-500";
+                if (index === 2 && user.score > 0) return "bg-amber-900/30 border-2 border-amber-600";
+                return "bg-slate-800/50 border-2 border-transparent";
+              };
+
+              return (
+                <div
+                  key={user.id}
+                  className={`text-sm p-3 rounded-lg flex justify-between items-center ${getBgColor()}`}
+                >
+                  <span className="flex items-center gap-2 text-white font-medium">
+                    {getMedalEmoji()} {user.name}
+                  </span>
+                  <span className="font-bold text-white">{user.score}</span>
+                </div>
+              );
+            })}
+        </div>
+
+        {aiPlayer && (
+          <div className="space-y-2">
+            <h4 className="font-medium text-slate-300">AI Player</h4>
+            <div className="text-sm p-3 rounded-lg flex justify-between items-center bg-blue-900/30 border-2 border-blue-600">
+              <span className="flex items-center gap-2 text-white font-medium">
+                🤖 {aiPlayer.name}
+              </span>
+              <span className="font-bold text-white">{aiPlayer.score}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (gameState.isLobby) {
     return (
       <div className="p-4 space-y-4">
@@ -167,23 +258,29 @@ export function GameStatus({
             .filter((user) => user.id !== "ai-player")
             .sort((a, b) => b.score - a.score)
             .map((user, index) => {
+              const getMedalEmoji = () => {
+                if (index === 0 && user.score > 0) return "🥇";
+                if (index === 1 && user.score > 0) return "🥈";
+                if (index === 2 && user.score > 0) return "🥉";
+                return null;
+              };
+
               const getBgColor = () => {
-                if (index === 0 && user.score > 0) return "bg-yellow-900/30";
-                if (index === 1 && user.score > 0) return "bg-slate-700";
-                if (index === 2 && user.score > 0) return "bg-amber-900/30";
-                return "bg-slate-800/50";
+                if (index === 0 && user.score > 0) return "bg-yellow-900/30 border-2 border-yellow-600";
+                if (index === 1 && user.score > 0) return "bg-slate-700/50 border-2 border-slate-500";
+                if (index === 2 && user.score > 0) return "bg-amber-900/30 border-2 border-amber-600";
+                return "bg-slate-800/50 border-2 border-transparent";
               };
 
               return (
                 <div
                   key={user.id}
-                  className={`text-sm p-2 rounded-md flex justify-between items-center ${getBgColor()}`}
+                  className={`text-sm p-3 rounded-lg flex justify-between items-center ${getBgColor()}`}
                 >
-                  <span className="flex items-center gap-2 text-white">
-                    {index === 0 && user.score > 0 && "👑"}
-                    {user.name}
+                  <span className="flex items-center gap-2 text-white font-medium">
+                    {getMedalEmoji()} {user.name}
                   </span>
-                  <span className="font-medium text-slate-300">Score: {user.score}</span>
+                  <span className="font-bold text-white">{user.score}</span>
                 </div>
               );
             })}
@@ -191,12 +288,12 @@ export function GameStatus({
 
         {aiPlayer && (
           <div className="space-y-2">
-            <h4 className="font-medium text-slate-300">AI</h4>
-            <div className="text-sm p-2 rounded-md flex justify-between items-center bg-blue-900/30">
-              <span className="flex items-center gap-2 text-white">
+            <h4 className="font-medium text-slate-300">AI Player</h4>
+            <div className="text-sm p-3 rounded-lg flex justify-between items-center bg-blue-900/30 border-2 border-blue-600">
+              <span className="flex items-center gap-2 text-white font-medium">
                 🤖 {aiPlayer.name}
               </span>
-              <span className="font-medium text-slate-300">Score: {aiPlayer.score}</span>
+              <span className="font-bold text-white">{aiPlayer.score}</span>
             </div>
           </div>
         )}
@@ -222,6 +319,13 @@ export function GameStatus({
     );
   }
 
+  const timerPercentage = (gameState.timeRemaining / 120) * 100;
+  const getTimerColor = () => {
+    if (gameState.timeRemaining <= 30) return "bg-red-500";
+    if (gameState.timeRemaining <= 60) return "bg-amber-500";
+    return "bg-emerald-500";
+  };
+
   return (
     <div
       className={`p-4 rounded-lg border ${getStatusBackground(
@@ -230,7 +334,7 @@ export function GameStatus({
       )}`}
     >
       <div className="space-y-4">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-lg font-medium text-white">
               {gameState.hasWon
@@ -239,8 +343,16 @@ export function GameStatus({
                 ? "Draw:"
                 : "Guess the drawing:"}
             </span>
-            <span className="text-xs text-slate-400">⏱</span>
+            <span className="text-xs text-slate-400">Round {gameState.roundNumber || 1}</span>
           </div>
+
+          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${getTimerColor()} transition-all duration-1000 ease-linear`}
+              style={{ width: `${timerPercentage}%` }}
+            />
+          </div>
+
           {isDrawer && (
             <span className="text-2xl font-bold text-white">
               {gameState.targetWord}

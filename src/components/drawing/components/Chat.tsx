@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { GameState } from "../types";
 
 export function Chat({
@@ -9,13 +10,14 @@ export function Chat({
   onGuess?: (guess: string) => Promise<void>;
   isDrawer: boolean;
 }) {
+  const [guessInput, setGuessInput] = useState("");
+
   const handleGuess = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const guess = (formData.get("guess") as string) || "";
-    if (!guess.trim()) return;
-    await onGuess?.(guess.trim());
-    event.currentTarget.reset();
+    const guess = guessInput.trim();
+    if (!guess) return;
+    setGuessInput("");
+    await onGuess?.(guess);
   };
 
   return (
@@ -49,17 +51,18 @@ export function Chat({
           ))}
         </div>
         {!isDrawer && (
-          <form onSubmit={handleGuess} className="flex gap-2">
+          <form onSubmit={handleGuess} className="flex gap-2 items-center">
             <input
               type="text"
-              name="guess"
+              value={guessInput}
+              onChange={(e) => setGuessInput(e.target.value)}
               placeholder="Enter your guess..."
-              className="flex-1 rounded-lg border-2 border-slate-600 bg-slate-700 text-white px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-900/50 transition-all placeholder:text-slate-400"
+              className="flex-1 min-w-0 rounded-lg border-2 border-slate-600 bg-slate-700 text-white px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-900/50 transition-all placeholder:text-slate-400"
               autoComplete="off"
             />
             <button
               type="submit"
-              className="bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"
+              className="flex-shrink-0 whitespace-nowrap bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"
             >
               Send
             </button>

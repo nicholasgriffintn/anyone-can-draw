@@ -168,18 +168,6 @@ export function DrawingCanvas({
       <ToolPicker isFillMode={isFillMode} setIsFillMode={setIsFillMode} />
       <LineWidthPicker lineWidth={lineWidth} setLineWidth={setLineWidth} />
       <ColorPicker currentColor={currentColor} setCurrentColor={setCurrentColor} />
-      <button
-        type="button"
-        onClick={clearCanvas}
-        className="w-full px-4 py-2.5 rounded-lg bg-red-900/30 border-2 border-red-700 text-sm font-semibold text-red-400 hover:bg-red-900/50 hover:border-red-600 transition-all"
-      >
-        <span className="flex items-center justify-center gap-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-          Clear Canvas
-        </span>
-      </button>
     </div>
   );
 
@@ -241,18 +229,34 @@ export function DrawingCanvas({
           </>
         )}
 
-        <div className="flex-1 flex items-center justify-center p-2 sm:p-4 overflow-auto">
+        <div className="flex-1 flex items-center justify-center p-2 sm:p-4 overflow-auto relative">
           {!apiResult ? (
-            <Canvas
-              canvasRef={canvasRef}
-              isFillMode={isFillMode}
-              currentColor={currentColor}
-              lineWidth={lineWidth}
-              saveToHistory={saveToHistory}
-              onDrawingComplete={handleDrawingComplete}
-              isReadOnly={gameState.isActive && !isDrawer}
-              drawingData={gameState.drawingData}
-            />
+            <>
+              <Canvas
+                canvasRef={canvasRef}
+                isFillMode={isFillMode}
+                currentColor={currentColor}
+                lineWidth={lineWidth}
+                saveToHistory={saveToHistory}
+                onDrawingComplete={handleDrawingComplete}
+                isReadOnly={gameState.isActive && !isDrawer}
+                drawingData={gameState.drawingData}
+              />
+              {displaySidebar && (
+                <button
+                  type="button"
+                  onClick={clearCanvas}
+                  className="absolute top-4 right-4 px-4 py-2.5 rounded-lg bg-red-900/90 border-2 border-red-700 text-sm font-semibold text-red-200 hover:bg-red-900 hover:border-red-600 transition-all shadow-lg backdrop-blur-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Clear Canvas
+                  </span>
+                </button>
+              )}
+            </>
           ) : (
             <Result apiResult={apiResult} />
           )}

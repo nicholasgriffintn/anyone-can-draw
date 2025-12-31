@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "starterjam",
+  "name": "anyone-can-draw",
   "main": "api/index.ts",
   "compatibility_date": "2025-04-10",
   "compatibility_flags": ["nodejs_compat"],

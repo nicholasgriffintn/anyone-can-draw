@@ -168,10 +168,10 @@ export function GameStatus({
                     <button
                       type="button"
                       onClick={() => onJoinGame?.(game.id)}
-                      disabled={!game.isLobby || !playerName.trim()}
+                      disabled={!playerName.trim()}
                       className="px-4 py-2 rounded-lg text-sm font-medium border-2 border-purple-500 bg-slate-700 text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-600 hover:text-white transition-all"
                     >
-                      {game.isLobby ? 'Join' : 'In Progress'}
+                      {game.isLobby ? 'Join' : 'Join (In Progress)'}
                     </button>
                   </div>
                 ))}

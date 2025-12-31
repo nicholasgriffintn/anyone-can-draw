@@ -95,6 +95,39 @@ export class DrawingGame extends BaseMultiplayerGame {
 		return gameId;
 	}
 
+	protected async handleJoin({
+		gameId,
+		playerId,
+		playerName,
+	}: {
+		gameId: string;
+		playerId: string;
+		playerName: string;
+	}) {
+		const game = this.games.get(gameId) as DrawingRuntimeGameData;
+		if (!game) throw new Error("Game not found");
+
+		const isNewPlayer = !game.users.has(playerId);
+
+		if (isNewPlayer) {
+			game.users.set(playerId, { name: playerName, score: 0 });
+
+			if (game.gameState.isActive && game.gameState.drawerRotation) {
+				if (!game.gameState.drawerRotation.includes(playerId)) {
+					game.gameState.drawerRotation.push(playerId);
+				}
+			}
+
+			await this.saveGames();
+
+			this.broadcast(gameId, {
+				type: "playerJoined",
+				playerId,
+				playerName,
+			});
+		}
+	}
+
 	protected validateGameStart(game: DrawingRuntimeGameData): boolean {
 		return game.users.size >= this.config.minPlayers;
 	}

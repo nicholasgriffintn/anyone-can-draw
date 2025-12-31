@@ -23,6 +23,9 @@ const resolveWebSocketUrl = (baseUrl: string) => {
   return normalizeBaseUrl(`${wsOrigin}${path}`);
 };
 
+let sharedSocket: WebSocket | null = null;
+let sharedSocketUrl: string | null = null;
+
 export function useGameState(
   initialGameId: string | null,
   playerId: string,
@@ -53,7 +56,23 @@ export function useGameState(
   }, []);
 
   useEffect(() => {
+    if (sharedSocket && sharedSocketUrl === socketUrl) {
+      wsRef.current = sharedSocket;
+      if (sharedSocket.readyState === WebSocket.OPEN) {
+        sharedSocket.send(JSON.stringify({ action: 'getGames' }));
+      }
+      return;
+    }
+
+    if (sharedSocket && sharedSocketUrl !== socketUrl) {
+      sharedSocket.close();
+      sharedSocket = null;
+      sharedSocketUrl = null;
+    }
+
     const ws = new WebSocket(socketUrl);
+    sharedSocket = ws;
+    sharedSocketUrl = socketUrl;
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -153,14 +172,8 @@ export function useGameState(
     };
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(
-          JSON.stringify({
-            action: 'leave',
-            playerId,
-          })
-        );
-        ws.close();
+      if (wsRef.current === ws) {
+        wsRef.current = null;
       }
     };
   }, [socketUrl, playerId, initialGameId]);

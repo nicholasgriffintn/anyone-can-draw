@@ -1,6 +1,6 @@
 import { BaseMultiplayerGame } from "./base";
 import { WORDS_BY_DIFFICULTY } from "../constants";
-import { onAIGuessDrawing } from "../utils/ai-utils";
+import { onAIGuessDrawing, generateWordList } from "../utils/ai-utils";
 import type { Env } from "../types/app";
 import type {
 	DrawingGameConfig,
@@ -76,6 +76,25 @@ export class DrawingGame extends BaseMultiplayerGame {
 		return gameState;
 	}
 
+	protected async handleCreateGame(data: {
+		gameName: string;
+		playerId: string;
+		playerName: string;
+	}): Promise<`${string}-${string}-${string}-${string}-${string}`> {
+		const gameId = await super.handleCreateGame(data);
+
+		const game = this.games.get(gameId) as DrawingRuntimeGameData;
+		if (game) {
+			const aiWordList = await generateWordList(this.env);
+			if (aiWordList) {
+				game.gameState.wordList = aiWordList;
+				await this.saveGames();
+			}
+		}
+
+		return gameId;
+	}
+
 	protected validateGameStart(game: DrawingRuntimeGameData): boolean {
 		return game.users.size >= this.config.minPlayers;
 	}
@@ -107,7 +126,9 @@ export class DrawingGame extends BaseMultiplayerGame {
 		const nextDrawer = game.gameState.drawerRotation[drawerIndex];
 
 		const difficulty = game.gameState.difficulty || "all";
-		const wordList = WORDS_BY_DIFFICULTY[difficulty];
+		const wordList = game.gameState.wordList
+			? game.gameState.wordList[difficulty]
+			: WORDS_BY_DIFFICULTY[difficulty];
 		const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
 
 		game.gameState = {

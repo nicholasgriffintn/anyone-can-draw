@@ -21,6 +21,12 @@ export interface DrawingGameState extends BaseGameState {
 	roundNumber?: number;
 	aiThinking?: boolean;
 	difficulty?: "easy" | "medium" | "hard" | "all";
+	wordList?: {
+		easy: string[];
+		medium: string[];
+		hard: string[];
+		all: string[];
+	};
 }
 
 export interface DrawingGameConfig extends BaseGameConfig {

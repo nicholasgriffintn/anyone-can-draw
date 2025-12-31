@@ -18,6 +18,12 @@ export interface User {
   id: string;
   name: string;
   score: number;
+  suspicionScore?: number;
+  roundStats?: {
+    correctGuesses: number;
+    totalRounds: number;
+    instantGuesses: number;
+  };
 }
 
 export interface GameState {

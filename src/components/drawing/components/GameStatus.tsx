@@ -202,6 +202,8 @@ export function GameStatus({
                 return "bg-slate-800/50 border-2 border-transparent";
               };
 
+              const isSuspicious = (user.suspicionScore ?? 0) >= 10;
+
               return (
                 <div
                   key={user.id}
@@ -209,6 +211,11 @@ export function GameStatus({
                 >
                   <span className="flex items-center gap-2 text-white font-medium">
                     {getMedalEmoji()} {user.name}
+                    {isSuspicious && (
+                      <span className="text-xs text-red-400" title="Suspicious behavior detected">
+                        ⚠️
+                      </span>
+                    )}
                   </span>
                   <span className="font-bold text-white">{user.score}</span>
                 </div>
@@ -272,6 +279,8 @@ export function GameStatus({
                 return "bg-slate-800/50 border-2 border-transparent";
               };
 
+              const isSuspicious = (user.suspicionScore ?? 0) >= 10;
+
               return (
                 <div
                   key={user.id}
@@ -279,6 +288,11 @@ export function GameStatus({
                 >
                   <span className="flex items-center gap-2 text-white font-medium">
                     {getMedalEmoji()} {user.name}
+                    {isSuspicious && (
+                      <span className="text-xs text-red-400" title="Suspicious behavior detected">
+                        ⚠️
+                      </span>
+                    )}
                   </span>
                   <span className="font-bold text-white">{user.score}</span>
                 </div>

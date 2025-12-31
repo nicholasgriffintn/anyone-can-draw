@@ -13,6 +13,13 @@ export interface BaseGameState {
 export interface BaseUserData {
     name: string;
     score: number;
+    suspicionScore?: number;
+    lastGuessTime?: number;
+    roundStats?: {
+        correctGuesses: number;
+        totalRounds: number;
+        instantGuesses: number;
+    };
 }
 
 export interface BaseGameConfig {

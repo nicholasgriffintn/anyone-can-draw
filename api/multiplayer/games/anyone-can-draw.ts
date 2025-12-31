@@ -127,6 +127,15 @@ export class DrawingGame extends BaseMultiplayerGame {
 			this.aiGuessHistory.get(gameId)!.clear();
 		}
 
+		for (const [id, user] of game.users.entries()) {
+			if (id !== DrawingGame.AI_PLAYER_ID) {
+				if (!user.roundStats) {
+					user.roundStats = { correctGuesses: 0, totalRounds: 0, instantGuesses: 0 };
+				}
+				user.roundStats.totalRounds++;
+			}
+		}
+
 		this.startGameTimer(gameId);
 
 		if (game.gameState.endTime) {
@@ -199,16 +208,56 @@ export class DrawingGame extends BaseMultiplayerGame {
 
 		const normalizedGuess = guess.trim().toLowerCase();
 		const normalizedTarget = game.gameState.targetWord.toLowerCase();
+		const isCorrect = normalizedGuess === normalizedTarget;
+		const now = Date.now();
+
+		const user = game.users.get(playerId);
+		if (user && playerId !== DrawingGame.AI_PLAYER_ID) {
+			if (!user.suspicionScore) user.suspicionScore = 0;
+			if (!user.roundStats) {
+				user.roundStats = { correctGuesses: 0, totalRounds: 0, instantGuesses: 0 };
+			}
+
+			const roundStartTime = game.gameState.endTime
+				? game.gameState.endTime - this.config.gameDuration * 1000
+				: now;
+			const timeSinceRoundStart = (now - roundStartTime) / 1000;
+
+			if (isCorrect) {
+				const hasNoPreviousGuesses = !game.gameState.guesses.some(
+					(g) => g.playerId === playerId
+				);
+
+				if (timeSinceRoundStart < 3 && hasNoPreviousGuesses) {
+					user.suspicionScore += 5;
+					user.roundStats.instantGuesses++;
+					console.warn(
+						`Suspicious: ${user.name} guessed correctly in ${timeSinceRoundStart.toFixed(1)}s with no prior guesses`
+					);
+				}
+
+				if (hasNoPreviousGuesses && game.gameState.guesses.length === 0) {
+					user.suspicionScore += 3;
+					console.warn(
+						`Suspicious: ${user.name} first guess was correct with no context`
+					);
+				}
+
+				user.roundStats.correctGuesses++;
+			}
+
+			user.lastGuessTime = now;
+		}
 
 		game.gameState.guesses.push({
 			playerId,
 			playerName: game.users.get(playerId)?.name || "Unknown Player",
 			guess,
-			timestamp: Date.now(),
-			correct: normalizedGuess === normalizedTarget,
+			timestamp: now,
+			correct: isCorrect,
 		});
 
-		if (normalizedGuess === normalizedTarget) {
+		if (isCorrect) {
 			await this.handleCorrectGuess(game, playerId);
 		}
 

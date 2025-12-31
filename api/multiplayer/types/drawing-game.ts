@@ -19,6 +19,7 @@ export interface DrawingGameState extends BaseGameState {
 	drawerRotation?: string[];
 	nextRoundStartTime?: number;
 	roundNumber?: number;
+	aiThinking?: boolean;
 }
 
 export interface DrawingGameConfig extends BaseGameConfig {

@@ -32,7 +32,7 @@ export function DrawingCanvas({
   const [apiResult, setApiResult] = useState<DrawingResponse | null>(null);
   const [currentColor, setCurrentColor] = useState("#030712");
   const [lineWidth, setLineWidth] = useState(3);
-  const [isFillMode, setIsFillMode] = useState(false);
+  const [toolMode, setToolMode] = useState<'brush' | 'fill' | 'eraser'>('brush');
   const [history, setHistory] = useState<ImageData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
@@ -165,7 +165,7 @@ export function DrawingCanvas({
   const DrawingTools = () => (
     <div className="flex flex-col gap-3">
       <Header undo={undo} redo={redo} history={history} historyIndex={historyIndex} />
-      <ToolPicker isFillMode={isFillMode} setIsFillMode={setIsFillMode} />
+      <ToolPicker toolMode={toolMode} setToolMode={setToolMode} />
       <LineWidthPicker lineWidth={lineWidth} setLineWidth={setLineWidth} />
       <ColorPicker currentColor={currentColor} setCurrentColor={setCurrentColor} />
     </div>
@@ -234,7 +234,7 @@ export function DrawingCanvas({
             <>
               <Canvas
                 canvasRef={canvasRef}
-                isFillMode={isFillMode}
+                toolMode={toolMode}
                 currentColor={currentColor}
                 lineWidth={lineWidth}
                 saveToHistory={saveToHistory}
@@ -296,6 +296,7 @@ export function DrawingCanvas({
                 gameState={gameState}
                 onGuess={submitGuess}
                 isDrawer={isDrawer}
+                playerId={playerId}
               />
             </div>
           )}
@@ -336,6 +337,7 @@ export function DrawingCanvas({
                   gameState={gameState}
                   onGuess={submitGuess}
                   isDrawer={isDrawer}
+                  playerId={playerId}
                 />
               </div>
             )}

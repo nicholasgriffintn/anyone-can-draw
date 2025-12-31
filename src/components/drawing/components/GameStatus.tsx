@@ -358,6 +358,14 @@ export function GameStatus({
               {gameState.targetWord}
             </span>
           )}
+          {!isDrawer && gameState.timeRemaining <= 60 && (
+            <div className="text-sm bg-amber-900/40 border border-amber-600 rounded-lg p-2.5 animate-pulse">
+              <span className="text-amber-300 font-medium">
+                💡 Hint: {gameState.targetWord.length} letters
+                {gameState.timeRemaining <= 30 && `, starts with "${gameState.targetWord[0].toUpperCase()}"`}
+              </span>
+            </div>
+          )}
           <div className="flex flex-col">
             <span className="text-xs text-slate-400">Time Remaining</span>
             <span className="text-2xl font-bold text-white">

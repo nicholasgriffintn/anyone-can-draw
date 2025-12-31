@@ -5,10 +5,12 @@ export function Chat({
   gameState,
   onGuess,
   isDrawer,
+  playerId,
 }: {
   gameState: GameState;
   onGuess?: (guess: string) => Promise<void>;
   isDrawer: boolean;
+  playerId: string;
 }) {
   const [guessInput, setGuessInput] = useState("");
 
@@ -27,28 +29,45 @@ export function Chat({
       </h3>
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 space-y-2 overflow-y-auto mb-3 pr-2">
-          {gameState.guesses.map((guess, index) => (
-            <div
-              key={`${guess.playerId}-${index}`}
-              className={`text-sm p-3 rounded-lg transition-all animate-slide-in ${
-                guess.correct
-                  ? "bg-emerald-900/30 border-2 border-emerald-600"
-                  : "bg-slate-700/50 border border-slate-600"
-              }`}
-            >
-              <span className={`font-semibold ${guess.correct ? 'text-emerald-400' : 'text-white'}`}>
-                {guess.playerName}:
-              </span>{" "}
-              <span className={guess.correct ? 'text-emerald-300' : 'text-slate-300'}>
-                {guess.correct && !isDrawer
-                  ? `You guessed correctly with ${guess.guess}!`
-                  : guess.guess}
+          {gameState.aiThinking && (
+            <div className="text-sm p-3 rounded-lg bg-blue-900/30 border border-blue-600 animate-pulse">
+              <span className="text-blue-300 font-medium">
+                🤖 AI is analyzing the drawing...
               </span>
-              {guess.correct && (
-                <span className="ml-2">✓</span>
-              )}
             </div>
-          ))}
+          )}
+          {gameState.guesses.map((guess, index) => {
+            const currentPlayerHasGuessedCorrectly = gameState.guesses.some(
+              (g) => g.playerId === playerId && g.correct
+            );
+            const isOwnGuess = guess.playerId === playerId;
+            const shouldHideAnswer = guess.correct && !isDrawer && !currentPlayerHasGuessedCorrectly && !isOwnGuess;
+
+            return (
+              <div
+                key={`${guess.playerId}-${index}`}
+                className={`text-sm p-3 rounded-lg transition-all animate-slide-in ${
+                  guess.correct
+                    ? "bg-emerald-900/30 border-2 border-emerald-600"
+                    : "bg-slate-700/50 border border-slate-600"
+                }`}
+              >
+                <span className={`font-semibold ${guess.correct ? 'text-emerald-400' : 'text-white'}`}>
+                  {guess.playerName}:
+                </span>{" "}
+                <span className={guess.correct ? 'text-emerald-300' : 'text-slate-300'}>
+                  {shouldHideAnswer
+                    ? "guessed correctly!"
+                    : isOwnGuess && guess.correct
+                      ? `${guess.guess}!`
+                      : guess.guess}
+                </span>
+                {guess.correct && (
+                  <span className="ml-2">✓</span>
+                )}
+              </div>
+            );
+          })}
         </div>
         {!isDrawer && (
           <form onSubmit={handleGuess} className="flex gap-2 items-center">

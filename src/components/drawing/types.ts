@@ -45,6 +45,7 @@ export interface GameState {
   drawerRotation?: string[];
   nextRoundStartTime?: number;
   roundNumber?: number;
+  aiThinking?: boolean;
 }
 
 export interface GameListItem {

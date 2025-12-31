@@ -11,6 +11,7 @@ import type {
 export class DrawingGame extends BaseMultiplayerGame {
 	public static readonly AI_PLAYER_ID = "ai-player";
 	protected readonly config: DrawingGameConfig;
+	private aiGuessHistory: Map<string, Set<string>> = new Map();
 
 	constructor(state: DurableObjectState, env: Env, config: DrawingGameConfig) {
 		super(state, env, {
@@ -121,6 +122,10 @@ export class DrawingGame extends BaseMultiplayerGame {
 			roundNumber: (game.gameState.roundNumber || 0) + 1,
 			nextRoundStartTime: undefined,
 		};
+
+		if (this.aiGuessHistory.has(gameId)) {
+			this.aiGuessHistory.get(gameId)!.clear();
+		}
 
 		this.startGameTimer(gameId);
 
@@ -298,7 +303,32 @@ export class DrawingGame extends BaseMultiplayerGame {
 			);
 
 			if (!aiHasGuessedCorrectly) {
-				const aiGuess = await onAIGuessDrawing(drawingData, this.env);
+				if (!this.aiGuessHistory.has(game.id)) {
+					this.aiGuessHistory.set(game.id, new Set());
+				}
+
+				const usedGuesses = this.aiGuessHistory.get(game.id)!;
+
+				const recentGuesses = game.gameState.guesses
+					.filter((g) => !g.correct && g.playerId !== DrawingGame.AI_PLAYER_ID)
+					.slice(-10)
+					.map((g) => g.guess);
+
+				const timeElapsed = game.gameState.endTime
+					? Math.floor((Date.now() - (game.gameState.endTime - this.config.gameDuration * 1000)) / 1000)
+					: 0;
+
+				game.gameState.aiThinking = true;
+				await this.broadcastGameState(game.id);
+
+				const aiGuess = await onAIGuessDrawing(drawingData, this.env, {
+					usedGuesses,
+					recentGuesses,
+					timeElapsed,
+					roundDuration: this.config.gameDuration,
+				});
+
+				game.gameState.aiThinking = false;
 
 				if (aiGuess.guess) {
 					game.lastAIGuessTime = Date.now();
@@ -307,10 +337,14 @@ export class DrawingGame extends BaseMultiplayerGame {
 						playerId: DrawingGame.AI_PLAYER_ID,
 						guess: aiGuess.guess,
 					});
+				} else {
+					await this.broadcastGameState(game.id);
 				}
 			}
 		} catch (error) {
 			console.error("Error processing AI guess:", error);
+			game.gameState.aiThinking = false;
+			await this.broadcastGameState(game.id);
 		}
 	}
 

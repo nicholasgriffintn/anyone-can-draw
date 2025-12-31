@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from "react";
 
 interface CanvasProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
-  isFillMode: boolean;
+  toolMode: 'brush' | 'fill' | 'eraser';
   currentColor: string;
   lineWidth: number;
   saveToHistory: () => void;
@@ -13,7 +13,7 @@ interface CanvasProps {
 
 export function Canvas({
   canvasRef,
-  isFillMode,
+  toolMode,
   currentColor,
   lineWidth,
   saveToHistory,
@@ -69,8 +69,17 @@ export function Canvas({
     ctx.beginPath();
     ctx.moveTo(lastX.current, lastY.current);
     ctx.lineTo(x, y);
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = lineWidth;
+
+    if (toolMode === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = lineWidth * 2;
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = lineWidth;
+    }
+
     ctx.lineCap = "round";
     ctx.stroke();
 
@@ -108,7 +117,7 @@ export function Canvas({
       lastY.current = (e.clientY - rect.top) * scaleY;
     }
 
-    if (isFillMode) {
+    if (toolMode === 'fill') {
       fill();
       isDrawing.current = false;
     }
@@ -139,7 +148,7 @@ export function Canvas({
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("touchmove", handleTouchMove);
     };
-  }, [isReadOnly, currentColor, lineWidth, isFillMode]);
+  }, [isReadOnly, currentColor, lineWidth, toolMode]);
 
   return (
     <>

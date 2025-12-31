@@ -9,7 +9,7 @@ export function Result({ apiResult }: { apiResult: DrawingResponse | null }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
       {apiResult.data?.data?.drawingUrl && (
         <div className="space-y-3 w-full">
-          <h3 className="text-lg font-medium text-slate-800">Your Drawing</h3>
+          <h3 className="text-lg font-medium text-white">Your Drawing</h3>
           <div className="bg-white relative aspect-square rounded-lg overflow-hidden border border-slate-200 shadow-sm">
             <img
               src={apiResult.data.data.drawingUrl}
@@ -21,7 +21,7 @@ export function Result({ apiResult }: { apiResult: DrawingResponse | null }) {
       )}
       {apiResult.data?.data?.paintingUrl && (
         <div className="space-y-3 w-full">
-          <h3 className="text-lg font-medium text-slate-800">
+          <h3 className="text-lg font-medium text-white">
             AI Generated Painting
           </h3>
           <div className="bg-white relative aspect-square rounded-lg overflow-hidden border border-slate-200 shadow-sm">

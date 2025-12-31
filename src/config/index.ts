@@ -35,7 +35,7 @@ function createConfig(): Config {
         .replaceAll(' ', '_'),
       githubRepo: getEnvVar(
         'VITE_GITHUB_REPO',
-        'https://github.com/nicholasgriffintn/starterjam.com'
+        'https://github.com/nicholasgriffintn/anyone-can-draw'
       ),
       environment: getEnvVar(
         'VITE_ENVIRONMENT',
@@ -43,16 +43,10 @@ function createConfig(): Config {
       ),
     },
     multiplayer: {
-      wsBaseUrl: getEnvVar(
-        'VITE_MULTIPLAYER_WS_BASE_URL',
-        '/ws'
-      ),
+      wsBaseUrl: getEnvVar('VITE_MULTIPLAYER_WS_BASE_URL', '/ws'),
     },
     drawingApi: {
-      baseUrl: getEnvVar(
-        'VITE_DRAWING_API_BASE_URL',
-        '/api'
-      ),
+      baseUrl: getEnvVar('VITE_DRAWING_API_BASE_URL', '/api'),
     },
   };
 }

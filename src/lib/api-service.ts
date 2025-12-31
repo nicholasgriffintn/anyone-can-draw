@@ -23,11 +23,7 @@ export async function generateDrawing(
   formData.append("drawing", blob, "drawing.png");
 
   const response = await fetch(`${normalizeBaseUrl(baseUrl)}/drawing`, {
-    method: "POST",
-    headers: {
-      "User-Agent": "AnyoneCanDraw",
-      "x-user-email": "anonymous@anyone-can-draw.app",
-    },
+    method: 'POST',
     body: formData,
   });
 

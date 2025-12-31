@@ -36,11 +36,11 @@ const App = () => {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
-      <header className="border-b border-slate-200 bg-white flex-shrink-0">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">{app.name}</h1>
-            <p className="text-xs text-slate-600">
+      <header className="border-b border-purple-200 bg-purple-600 flex-shrink-0 shadow-md">
+        <div className="px-4 py-4 flex items-center justify-between">
+          <div className="animate-fade-in">
+            <h1 className="text-2xl font-bold text-white">{app.name}</h1>
+            <p className="text-sm text-purple-100">
               Draw solo, or jump into a live round with friends.
             </p>
           </div>
@@ -49,7 +49,7 @@ const App = () => {
               href={app.githubRepo}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-slate-600 hover:text-slate-900"
+              className="text-sm text-white bg-white/20 px-4 py-2 rounded-lg hover:bg-white/30 border border-white/30 transition-all"
             >
               View source
             </a>

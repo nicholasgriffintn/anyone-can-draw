@@ -20,22 +20,31 @@ export function Chat({
 
   return (
     <div className="h-full flex flex-col p-4">
-      <h3 className="font-medium mb-3 text-slate-800 text-sm">Game Chat</h3>
+      <h3 className="font-bold mb-4 text-slate-800 text-base">
+        Game Chat
+      </h3>
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 space-y-2 overflow-y-auto mb-3">
+        <div className="flex-1 space-y-2 overflow-y-auto mb-3 pr-2">
           {gameState.guesses.map((guess, index) => (
             <div
               key={`${guess.playerId}-${index}`}
-              className={`text-sm p-2 rounded ${
-                guess.correct ? "bg-green-50 border border-green-200" : "bg-slate-50"
+              className={`text-sm p-3 rounded-lg transition-all animate-slide-in ${
+                guess.correct
+                  ? "bg-emerald-50 border-2 border-emerald-300"
+                  : "bg-slate-50 border border-slate-200"
               }`}
             >
-              <span className="font-medium text-slate-800">
+              <span className={`font-semibold ${guess.correct ? 'text-emerald-700' : 'text-slate-800'}`}>
                 {guess.playerName}:
               </span>{" "}
-              {guess.correct && !isDrawer
-                ? `You guessed correctly with ${guess.guess}!`
-                : guess.guess}
+              <span className={guess.correct ? 'text-emerald-600' : 'text-slate-600'}>
+                {guess.correct && !isDrawer
+                  ? `You guessed correctly with ${guess.guess}!`
+                  : guess.guess}
+              </span>
+              {guess.correct && (
+                <span className="ml-2">✓</span>
+              )}
             </div>
           ))}
         </div>
@@ -45,14 +54,14 @@ export function Chat({
               type="text"
               name="guess"
               placeholder="Enter your guess..."
-              className="flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm"
+              className="flex-1 rounded-lg border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
               autoComplete="off"
             />
             <button
               type="submit"
-              className="bg-slate-900 text-white px-4 py-2 rounded-md text-sm hover:bg-slate-800 transition-colors"
+              className="bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"
             >
-              Guess
+              Send
             </button>
           </form>
         )}

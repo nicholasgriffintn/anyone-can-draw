@@ -150,15 +150,14 @@ export function Canvas({
         ref={canvasRef}
         width={1200}
         height={800}
-        className={`bg-white border border-slate-200 rounded-lg touch-none shadow-sm ${
+        className={`bg-white border-2 border-purple-200 rounded-lg touch-none shadow-md ${
           isReadOnly ? "cursor-default" : "cursor-crosshair"
         }`}
         style={{
           width: '100%',
-          height: '100%',
-          maxWidth: '100%',
-          maxHeight: '100%',
-          objectFit: 'contain'
+          maxWidth: '1200px',
+          aspectRatio: '3/2',
+          display: 'block'
         }}
         onMouseDown={startDrawing}
         onMouseUp={stopDrawing}

@@ -171,9 +171,14 @@ export function DrawingCanvas({
       <button
         type="button"
         onClick={clearCanvas}
-        className="w-full px-3 py-2 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 hover:bg-red-100 transition-colors"
+        className="w-full px-4 py-2.5 rounded-lg bg-red-50 border-2 border-red-300 text-sm font-semibold text-red-700 hover:bg-red-100 hover:border-red-400 transition-all"
       >
-        Clear Canvas
+        <span className="flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Clear Canvas
+        </span>
       </button>
     </div>
   );
@@ -181,19 +186,19 @@ export function DrawingCanvas({
   return (
     <div className="h-full flex flex-col">
       {apiResult && (
-        <div className="flex-shrink-0 px-4 py-2 border-b border-slate-200 bg-white flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-700">AI Result</span>
+        <div className="flex-shrink-0 px-4 py-3 border-b-2 border-purple-200 bg-purple-50 flex items-center justify-between animate-fade-in">
+          <span className="text-sm font-bold text-slate-800">AI Result</span>
           <button
             type="button"
             onClick={() => setApiResult(null)}
-            className="px-3 py-1.5 rounded-md border border-slate-200 text-sm hover:bg-slate-50"
+            className="px-4 py-2 rounded-lg border-2 border-purple-300 bg-white text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-all"
           >
             New Drawing
           </button>
         </div>
       )}
 
-      <div className="lg:hidden flex-shrink-0 px-4 py-2 border-b border-slate-200 bg-white flex gap-2">
+      <div className="lg:hidden flex-shrink-0 px-4 py-2.5 border-b-2 border-purple-100 bg-white flex gap-2">
         {displaySidebar && (
           <button
             type="button"
@@ -201,7 +206,7 @@ export function DrawingCanvas({
               setShowLeftPanel(!showLeftPanel);
               setShowRightPanel(false);
             }}
-            className="flex-1 px-3 py-1.5 rounded-md border border-slate-200 text-sm hover:bg-slate-50"
+            className="flex-1 px-4 py-2 rounded-lg border-2 border-purple-200 text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all"
           >
             {showLeftPanel ? "Hide Tools" : "Show Tools"}
           </button>
@@ -212,7 +217,7 @@ export function DrawingCanvas({
             setShowRightPanel(!showRightPanel);
             setShowLeftPanel(false);
           }}
-          className="flex-1 px-3 py-1.5 rounded-md border border-slate-200 text-sm hover:bg-slate-50"
+          className="flex-1 px-4 py-2 rounded-lg border-2 border-purple-200 text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all"
         >
           {showRightPanel ? "Hide Panel" : "Show Panel"}
         </button>
@@ -221,14 +226,14 @@ export function DrawingCanvas({
       <div className="flex-1 flex overflow-hidden relative">
         {displaySidebar && (
           <>
-            <div className="hidden lg:block w-64 flex-shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
-              <div className="p-3">
+            <div className="hidden lg:block w-64 flex-shrink-0 border-r-2 border-purple-100 bg-white overflow-y-auto shadow-sm">
+              <div className="p-4">
                 <DrawingTools />
               </div>
             </div>
             {showLeftPanel && (
-              <div className="lg:hidden absolute inset-y-0 left-0 w-64 z-10 border-r border-slate-200 bg-white overflow-y-auto shadow-lg">
-                <div className="p-3">
+              <div className="lg:hidden absolute inset-y-0 left-0 w-64 z-10 border-r-2 border-purple-200 bg-white overflow-y-auto shadow-2xl animate-slide-in">
+                <div className="p-4">
                   <DrawingTools />
                 </div>
               </div>
@@ -253,9 +258,9 @@ export function DrawingCanvas({
           )}
         </div>
 
-        <div className="hidden lg:flex w-80 flex-shrink-0 border-l border-slate-200 bg-white flex-col overflow-hidden">
+        <div className="hidden lg:flex w-80 flex-shrink-0 border-l-2 border-purple-100 bg-white flex-col overflow-hidden shadow-sm">
           {!apiResult && !gameState.isActive && (
-            <div className="flex-shrink-0 border-b border-slate-200">
+            <div className="flex-shrink-0 border-b-2 border-purple-100">
               <GenerateDrawing
                 handleSubmit={handleSubmit}
                 loading={loading}
@@ -264,7 +269,7 @@ export function DrawingCanvas({
             </div>
           )}
 
-          <div className="flex-shrink-0 border-b border-slate-200">
+          <div className="flex-shrink-0 border-b-2 border-purple-100">
             <GameStatus
               users={users}
               gameState={gameState}
@@ -293,9 +298,9 @@ export function DrawingCanvas({
         </div>
 
         {showRightPanel && (
-          <div className="lg:hidden absolute inset-y-0 right-0 w-80 z-10 border-l border-slate-200 bg-white flex flex-col overflow-hidden shadow-lg">
+          <div className="lg:hidden absolute inset-y-0 right-0 w-80 z-10 border-l-2 border-purple-200 bg-white flex flex-col overflow-hidden shadow-2xl animate-slide-in">
             {!apiResult && !gameState.isActive && (
-              <div className="flex-shrink-0 border-b border-slate-200">
+              <div className="flex-shrink-0 border-b-2 border-purple-100">
                 <GenerateDrawing
                   handleSubmit={handleSubmit}
                   loading={loading}
@@ -304,7 +309,7 @@ export function DrawingCanvas({
               </div>
             )}
 
-            <div className="flex-shrink-0 border-b border-slate-200">
+            <div className="flex-shrink-0 border-b-2 border-purple-100">
               <GameStatus
                 users={users}
                 gameState={gameState}

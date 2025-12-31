@@ -4,6 +4,7 @@ const usedGuesses = new Set<string>();
 
 export async function onAIGuessDrawing(drawingData: string, env: Env) {
 	if (!env.AI) {
+		console.warn('AI environment not configured.');
 		return { guess: null };
 	}
 	const base64Data = drawingData.replace(/^data:image\/\w+;base64,/, "");

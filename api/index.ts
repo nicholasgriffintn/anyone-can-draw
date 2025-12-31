@@ -77,18 +77,19 @@ async function handleApiRequest(
       }) as unknown as CfResponse;
     }
 
-    const contentType = request.headers.get('content-type') || '';
-    const body = await request.arrayBuffer();
+    const formData = await request.formData();
+    const body = formData as unknown as BodyInit;
 
     const response = await fetch(`${getDrawingBaseUrl(env)}/apps/drawing`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': contentType,
         'User-Agent': 'AnyoneCanDraw',
         'x-user-email':
           request.headers.get('x-user-email') ||
           'anonymous@anyone-can-draw.app',
+        Origin: 'https://polychat.app',
+        Referer: 'https://polychat.app/',
       },
       body,
     });

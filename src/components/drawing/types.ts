@@ -1,14 +1,15 @@
 export interface DrawingResponse {
-  response: {
+  status: string;
+  data: {
     status: string;
-    content: string;
+    app_data_id: string;
+    completion_id: string;
     data: {
-      drawingUrl: {
-        key: string;
-      };
-      paintingUrl: {
-        key: string;
-      };
+      drawingUrl: string;
+      drawingKey: string;
+      paintingUrl: string;
+      paintingKey: string;
+      description: string;
     };
   };
 }

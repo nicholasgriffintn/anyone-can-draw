@@ -15,39 +15,40 @@ export async function onAIGuessDrawing(drawingData: string, env: Env) {
 	);
 
 	const guessRequest = await env.AI.run(
-		"@cf/llava-hf/llava-1.5-7b-hf",
-		{
-			prompt: `You will be provided with a description of an image. Your task is to guess what the image depicts using only one word. Follow these steps:
+    '@cf/meta/llama-3.2-11b-vision-instruct',
+    {
+      prompt: `You are shown a simple drawing. Choose the best ONE-WORD guess.
 
-1. Carefully review the image provided.
+Hard rules:
+- Output exactly one lowercase word (a–z only). No other characters or text.
+- Do not output any banned words: ${Array.from(usedGuesses).join(', ')}
 
-2. Based on the image, think about the most likely object, animal, place, food, activity, or concept that the image represents.
+Quality rules:
+- Prefer specific nouns over broad categories.
+- If uncertain, still choose the closest likely noun.
 
-3. Choose a single word that best describes or identifies the main subject of the image.
+Return only the one word.`,
+      image: [...binaryData],
+      temperature: 0,
+      top_k: 1,
+      top_p: 1,
+      max_tokens: 8,
+    },
+    {}
+  );
 
-4. Provide your guess as a single word response. Do not include any explanations, punctuation, or additional text.
+  if (!guessRequest.response) {
+    return { guess: null };
+  }
 
-IMPORTANT: Do not use any of these previously guessed words: ${Array.from(
-				usedGuesses,
-			).join(", ")}
+  const formattedGuess = guessRequest.response.trim().toLowerCase();
 
-Your response should contain only one word, which represents your best guess for the image described. Ensure that your answer is concise and accurately reflects the main subject of the image.`,
-			image: [...binaryData],
-		},
-		{},
-	);
+  if (usedGuesses.has(formattedGuess)) {
+    return { guess: null };
+  }
 
-	if (!guessRequest.description) {
-		return { guess: null };
-	}
-
-	if (usedGuesses.has(guessRequest.description.trim().toLowerCase())) {
-		return { guess: null };
-	}
-
-	usedGuesses.add(guessRequest.description.trim().toLowerCase());
-
-	const guess = guessRequest.description.trim().toLowerCase();
+  usedGuesses.add(formattedGuess);
+  const guess = formattedGuess;
 
 	return { guess };
 }

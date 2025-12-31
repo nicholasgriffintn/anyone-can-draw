@@ -6,9 +6,9 @@ export async function onGenerateDrawing(drawingData: string) {
 		}
 
 		const baseUrl =
-			process.env.NODE_ENV === "development"
-				? "http://localhost:8787"
-				: "https://chat-api.nickgriffin.uk";
+      process.env.NODE_ENV === 'development'
+        ? 'http://localhost:8787'
+        : 'https://api.polychat.app';
 
 		const base64Data = drawingData.replace(/^data:image\/\w+;base64,/, "");
 		const binaryData = Buffer.from(base64Data, "base64");

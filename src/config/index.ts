@@ -1,18 +1,15 @@
 interface Config {
-  api: {
-    baseUrl: string;
-    wsBaseUrl: string;
-  };
   app: {
     name: string;
     key: string;
     githubRepo?: string;
     environment: string;
   };
-  websocket: {
-    maxReconnectAttempts: number;
-    reconnectBaseDelay: number;
-    maxReconnectDelay: number;
+  multiplayer: {
+    wsBaseUrl: string;
+  };
+  drawingApi: {
+    baseUrl: string;
   };
 }
 
@@ -31,16 +28,6 @@ function createConfig(): Config {
   const isDev = import.meta.env.DEV;
 
   return {
-    api: {
-      baseUrl: getEnvVar(
-        'VITE_API_BASE_URL',
-        isDev ? 'http://localhost:5173/api' : 'https://starterjam.com/api'
-      ),
-      wsBaseUrl: getEnvVar(
-        'VITE_WS_BASE_URL',
-        isDev ? 'ws://localhost:5173/ws' : 'wss://starterjam.com/ws'
-      ),
-    },
     app: {
       name: getEnvVar('VITE_APP_NAME', 'Anyone Can Draw'),
       key: getEnvVar('VITE_APP_NAME', 'Anyone Can Draw')
@@ -55,18 +42,16 @@ function createConfig(): Config {
         isDev ? 'development' : 'production'
       ),
     },
-    websocket: {
-      maxReconnectAttempts: parseInt(
-        getEnvVar('VITE_MAX_RECONNECT_ATTEMPTS', '5'),
-        10
+    multiplayer: {
+      wsBaseUrl: getEnvVar(
+        'VITE_MULTIPLAYER_WS_BASE_URL',
+        '/ws'
       ),
-      reconnectBaseDelay: parseInt(
-        getEnvVar('VITE_RECONNECT_BASE_DELAY', '1000'),
-        10
-      ),
-      maxReconnectDelay: parseInt(
-        getEnvVar('VITE_MAX_RECONNECT_DELAY', '30000'),
-        10
+    },
+    drawingApi: {
+      baseUrl: getEnvVar(
+        'VITE_DRAWING_API_BASE_URL',
+        '/api'
       ),
     },
   };

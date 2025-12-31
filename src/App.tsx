@@ -1,272 +1,70 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState } from "react";
 
-import {
-  createRoom,
-  joinRoom,
-  connectToRoom,
-  disconnectFromRoom,
-  updateSettings,
-  addEventListener,
-  removeEventListener,
-  isConnected,
-  type WebSocketMessageType,
-} from './lib/api-service';
-import type { RoomData, WebSocketErrorData, RoomSettings } from './types';
-
-import WelcomeScreen from './components/WelcomeScreen';
-import CreateRoomScreen from './components/CreateRoomScreen';
-import JoinRoomScreen from './components/JoinRoomScreen';
-import RoomScreen from './components/RoomScreen';
-import ErrorBanner from './components/ErrorBanner';
-import LoadingOverlay from './components/LoadingOverlay';
-import { config } from './config';
-
-type AppScreen = 'welcome' | 'create' | 'join' | 'room';
+import { DrawingCanvas } from "./components/drawing/DrawingCanvas";
+import { generateDrawing } from "./lib/api-service";
+import { config } from "./config";
 
 const App = () => {
   const { app } = config;
 
-  const [name, setName] = useState<string>('');
-  const [roomKey, setRoomKey] = useState<string>('');
-  const [screen, setScreen] = useState<AppScreen>('welcome');
-  const [roomData, setRoomData] = useState<RoomData>({
-    key: '',
-    users: [],
-    moderator: '',
-    connectedUsers: {},
-    settings: {},
+  const [playerId] = useState(() => {
+    const savedId = localStorage.getItem(`${app.key}_player_id`);
+    if (savedId) return savedId;
+    const newId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `player-${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(`${app.key}_player_id`, newId);
+    return newId;
   });
-  const [isModeratorView, setIsModeratorView] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const didLoadName = useRef(false);
-  const didCheckUrlParams = useRef(false);
-  const didAttemptRestore = useRef(false);
+  const defaultName = useMemo(() => {
+    return `Player ${playerId.slice(0, 4).toUpperCase()}`;
+  }, [playerId]);
 
-  // Join room from URL parameters
+  const [playerName, setPlayerName] = useState(() => {
+    return localStorage.getItem(`${app.key}_player_name`) || defaultName;
+  });
+
   useEffect(() => {
-    if (didCheckUrlParams.current) return;
+    localStorage.setItem(`${app.key}_player_name`, playerName);
+  }, [app.key, playerName]);
 
-    didCheckUrlParams.current = true;
-
-    try {
-      const url = new URL(window.location.href);
-      const joinParam = url.searchParams.get('join');
-
-      // Check if URL contains ?join=roomKey
-      if (joinParam && joinParam.length > 0) {
-        setRoomKey(joinParam.toUpperCase());
-        setScreen('join');
-
-        window.history.replaceState({}, document.title, '/');
-      }
-    } catch (err) {
-      console.error('Failed to parse URL parameters', err);
-    }
-  }, []);
-
-  // Auto-reconnect to last room on refresh
-  useEffect(() => {
-    if (didAttemptRestore.current) return;
-    if (screen !== 'welcome') return;
-    if (!name) return;
-    didAttemptRestore.current = true;
-    const savedRoomKey = localStorage.getItem(`${app.key}_roomKey`);
-    if (savedRoomKey) {
-      setIsLoading(true);
-      joinRoom(name, savedRoomKey)
-        .then((joinedRoom) => {
-          setRoomData(joinedRoom);
-          setIsModeratorView(joinedRoom.moderator === name);
-          setScreen('room');
-        })
-        .catch((err) => {
-          const errorMessage =
-            err instanceof Error ? err.message : 'Failed to reconnect to room';
-          setError(errorMessage);
-          localStorage.removeItem(`${app.key}_roomKey`);
-        })
-        .finally(() => setIsLoading(false));
-    }
-  }, [name, screen]);
-
-  const handleRoomUpdate = useCallback(
-    (updatedRoomData: RoomData) => {
-      setRoomData(updatedRoomData);
-
-      setIsModeratorView(updatedRoomData.moderator === name);
-
-      setError('');
-    },
-    [name]
-  );
-
-  // Connect to WebSocket when entering a room
-  useEffect(() => {
-    if (screen === 'room' && name && roomData.key) {
-      connectToRoom(roomData.key, name, handleRoomUpdate);
-
-      const errorHandler = (data: WebSocketErrorData) => {
-        setError(data.error || 'Connection error');
-      };
-
-      const eventTypes: WebSocketMessageType[] = ['disconnected', 'error'];
-
-      for (const type of eventTypes) {
-        addEventListener(type, errorHandler);
-      }
-
-      return () => {
-        disconnectFromRoom();
-        for (const type of eventTypes) {
-          removeEventListener(type, errorHandler);
-        }
-      };
-    }
-  }, [screen, name, roomData.key, handleRoomUpdate]);
-
-  // Persist user name in localStorage (Combined Load & Save)
-  useEffect(() => {
-    if (!didLoadName.current) {
-      const savedName = localStorage.getItem(`${app.key}_username`);
-      if (savedName) {
-        setName(savedName);
-      }
-      didLoadName.current = true;
-      return;
-    }
-
-    if (name === '' && !localStorage.getItem(`${app.key}_username`)) {
-      return;
-    }
-
-    const saveTimeout = setTimeout(() => {
-      localStorage.setItem(`${app.key}_username`, name);
-    }, 500);
-
-    return () => clearTimeout(saveTimeout);
-  }, [name]);
-
-  const handleCreateRoom = async () => {
-    if (!name) return;
-
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const newRoom = await createRoom(name);
-
-      setRoomData(newRoom);
-      localStorage.setItem(`${app.key}_roomKey`, newRoom.key);
-      setIsModeratorView(true);
-      setScreen('room');
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to create room';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSubmit = async (drawingData: string) => {
+    return generateDrawing(drawingData);
   };
-
-  const handleJoinRoom = async () => {
-    if (!name || !roomKey) return;
-
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const joinedRoom = await joinRoom(name, roomKey);
-
-      setRoomData(joinedRoom);
-      localStorage.setItem(`${app.key}_roomKey`, joinedRoom.key);
-      setIsModeratorView(joinedRoom.moderator === name);
-      setScreen('room');
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to join room';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdateSettings = (settings: RoomSettings) => {
-    if (!isModeratorView) return;
-
-    try {
-      updateSettings(settings);
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to update settings';
-      setError(errorMessage);
-    }
-  };
-
-  const handleLeaveRoom = () => {
-    disconnectFromRoom();
-    localStorage.removeItem(`${app.key}_roomKey`);
-    setRoomData({
-      key: '',
-      users: [],
-      moderator: '',
-      connectedUsers: {},
-      settings: {},
-    });
-    setScreen('welcome');
-  };
-
-  const clearError = () => setError('');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {isLoading && <LoadingOverlay />}
+    <div className="min-h-screen bg-slate-50">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {app.name}
+            </h1>
+            <p className="text-sm text-slate-600">
+              Draw solo, or jump into a live round with friends.
+            </p>
+          </div>
+          {app.githubRepo && (
+            <a
+              href={app.githubRepo}
+              className="text-sm text-slate-600 hover:text-slate-900"
+            >
+              View source
+            </a>
+          )}
+        </div>
+      </header>
 
-      {error && screen !== 'room' && (
-        <ErrorBanner message={error} onClose={clearError} />
-      )}
-
-      {screen === 'welcome' && (
-        <WelcomeScreen
-          onCreateRoom={() => setScreen('create')}
-          onJoinRoom={() => setScreen('join')}
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        <DrawingCanvas
+          playerId={playerId}
+          playerName={playerName}
+          onPlayerNameChange={setPlayerName}
+          onSubmit={handleSubmit}
         />
-      )}
-      {screen === 'create' && (
-        <CreateRoomScreen
-          name={name}
-          onNameChange={setName}
-          onCreateRoom={handleCreateRoom}
-          onBack={() => setScreen('welcome')}
-          error={error}
-          onClearError={clearError}
-        />
-      )}
-      {screen === 'join' && (
-        <JoinRoomScreen
-          name={name}
-          roomKey={roomKey}
-          onNameChange={setName}
-          onRoomKeyChange={setRoomKey}
-          onJoinRoom={handleJoinRoom}
-          onBack={() => setScreen('welcome')}
-          error={error}
-          onClearError={clearError}
-        />
-      )}
-      {screen === 'room' && (
-        <RoomScreen
-          roomData={roomData}
-          name={name}
-          isModeratorView={isModeratorView}
-          onUpdateSettings={handleUpdateSettings}
-          onLeaveRoom={handleLeaveRoom}
-          error={error}
-          onClearError={clearError}
-          isConnected={isConnected()}
-        />
-      )}
+      </main>
     </div>
   );
 };
